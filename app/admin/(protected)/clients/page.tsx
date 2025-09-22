@@ -37,6 +37,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { prisma } from "@/lib/system/database"
 import { ClientSearch } from "@/components/client-search"
+import type { Client } from "@prisma/client"
+
+type ClientWithSelection = Pick<Client, 'id' | 'companyName' | 'contactName' | 'contactEmail' | 'serviceTier' | 'status' | 'createdAt'>
 
 export default async function ClientsPage({
   searchParams,
@@ -61,7 +64,7 @@ export default async function ClientsPage({
     : {}
 
   // Fetch clients with pagination
-  const [clients, totalCount] = await Promise.all([
+  const [clients, totalCount]: [ClientWithSelection[], number] = await Promise.all([
     prisma.client.findMany({
       where,
       orderBy: { createdAt: 'desc' },
