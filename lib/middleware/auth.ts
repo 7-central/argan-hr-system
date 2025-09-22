@@ -94,9 +94,9 @@ export async function authenticateRequest(
  * Acts as middleware that adds authentication to handlers
  */
 export function withAuth<T = unknown>(
-  handler: (request: AuthenticatedRequest, context?: T) => Promise<NextResponse> | NextResponse
+  handler: (request: AuthenticatedRequest, context: T) => Promise<NextResponse> | NextResponse
 ) {
-  return async (request: NextRequest, context?: T): Promise<NextResponse> => {
+  return async (request: NextRequest, context: T): Promise<NextResponse> => {
     const { session, response } = await authenticateRequest(request);
 
     if (response) {

@@ -16,11 +16,8 @@ import {
  */
 async function getClientHandler(
   request: AuthenticatedRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  if (!context) {
-    throw new ValidationError('Missing route context')
-  }
   // adminSession available but not used in this handler
   const { id } = await context.params
 
@@ -48,11 +45,8 @@ async function getClientHandler(
  */
 async function updateClientHandler(
   request: AuthenticatedRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  if (!context) {
-    throw new ValidationError('Missing route context')
-  }
   // adminSession available but not used in this handler
   const { id } = await context.params
   const body = await request.json()
@@ -165,11 +159,8 @@ async function updateClientHandler(
  */
 async function deleteClientHandler(
   request: AuthenticatedRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  if (!context) {
-    throw new ValidationError('Missing route context')
-  }
   // adminSession available but not used in this handler
   const { id } = await context.params
 

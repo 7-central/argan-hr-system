@@ -24,7 +24,7 @@ function extractRequestInfo(request: NextRequest) {
  */
 export function withRequestLogging<T = unknown>(): Middleware<T> {
   return (handler: Handler<T>) => {
-    return async (request: NextRequest, context?: T): Promise<NextResponse> => {
+    return async (request: NextRequest, context: T): Promise<NextResponse> => {
       const startTime = Date.now();
       const requestInfo = extractRequestInfo(request);
 
@@ -78,7 +78,7 @@ export function withRequestLogging<T = unknown>(): Middleware<T> {
  */
 export function withAccessLog<T = unknown>(): Middleware<T> {
   return (handler: Handler<T>) => {
-    return async (request: NextRequest, context?: T): Promise<NextResponse> => {
+    return async (request: NextRequest, context: T): Promise<NextResponse> => {
       const start = Date.now();
 
       const response = await handler(request, context);

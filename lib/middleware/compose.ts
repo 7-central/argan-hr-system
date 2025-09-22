@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export type Handler<T = unknown> = (
   request: NextRequest,
-  context?: T
+  context: T
 ) => Promise<NextResponse> | NextResponse;
 
 /**
@@ -67,7 +67,7 @@ export function conditional<T = unknown>(
   middleware: Middleware<T>
 ): Middleware<T> {
   return (handler: Handler<T>) => {
-    return async (request: NextRequest, context?: T) => {
+    return async (request: NextRequest, context: T) => {
       if (predicate(request)) {
         return middleware(handler)(request, context);
       }

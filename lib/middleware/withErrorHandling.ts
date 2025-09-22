@@ -90,7 +90,7 @@ function formatErrorResponse(
  */
 export function withErrorHandling<T = unknown>(): Middleware<T> {
   return (handler: Handler<T>) => {
-    return async (request: NextRequest, context?: T): Promise<NextResponse> => {
+    return async (request: NextRequest, context: T): Promise<NextResponse> => {
       const requestId = generateRequestId();
 
       try {
@@ -142,7 +142,7 @@ export function withErrorHandling<T = unknown>(): Middleware<T> {
  */
 export function withErrorLogging<T = unknown>(): Middleware<T> {
   return (handler: Handler<T>) => {
-    return async (request: NextRequest, context?: T): Promise<NextResponse> => {
+    return async (request: NextRequest, context: T): Promise<NextResponse> => {
       try {
         return await handler(request, context);
       } catch (error) {

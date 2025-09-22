@@ -31,7 +31,7 @@ export const publicApiStack = compose(
  * Note: withAuth is applied directly, not through compose
  */
 export function businessApiStack<T = unknown>(
-  handler: (request: AuthenticatedRequest, context?: T) => Promise<NextResponse> | NextResponse
+  handler: (request: AuthenticatedRequest, context: T) => Promise<NextResponse> | NextResponse
 ) {
   // Apply middleware in order: error handling -> logging -> auth
   return withErrorHandling<T>()(
@@ -47,7 +47,7 @@ export function businessApiStack<T = unknown>(
  * Note: Audit logging would be added in Phase 2
  */
 export function adminApiStack<T = unknown>(
-  handler: (request: AuthenticatedRequest, context?: T) => Promise<NextResponse> | NextResponse
+  handler: (request: AuthenticatedRequest, context: T) => Promise<NextResponse> | NextResponse
 ) {
   return withErrorHandling<T>()(
     withRequestLogging<T>()(
