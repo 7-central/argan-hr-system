@@ -2,22 +2,15 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
+  Building2,
+  FileText,
+  LayoutDashboard,
+  Settings,
+  Users,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -26,148 +19,103 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
+// Navigation data for Argan HR
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Admin User",
+    email: "admin@argan.hr",
+    avatar: "/avatars/admin.jpg",
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
+  company: {
+    name: "Argan HR",
+    logo: Building2,
+    plan: "Enterprise",
+  },
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Dashboard",
+      url: "/admin",
+      icon: LayoutDashboard,
       isActive: true,
+    },
+    {
+      title: "Clients",
+      url: "/admin/clients",
+      icon: Users,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "All Clients",
+          url: "/admin/clients",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Add New Client",
+          url: "/admin/clients/new",
         },
       ],
     },
     {
-      title: "Models",
+      title: "Documents",
       url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
+      icon: FileText,
+      badge: "Coming Soon",
+      disabled: true,
     },
+  ],
+  navManagement: [
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
+      title: "Admin Users",
+      url: "/admin/users",
+      icon: Users,
     },
     {
       title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      url: "/admin/settings",
+      icon: Settings,
     },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: {
+    name: string
+    email: string
+    role?: string
+  }
+}
+
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
+  // Use provided user data or fallback to defaults
+  const userData = user ? {
+    name: user.name,
+    email: user.email,
+    avatar: "/avatars/admin.jpg",
+  } : data.user
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <div className="flex items-center gap-2 px-2">
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <data.company.logo className="size-4" />
+          </div>
+          <div className="flex flex-col gap-0.5 leading-none">
+            <span className="font-semibold">{data.company.name}</span>
+            <span className="text-xs text-muted-foreground">{data.company.plan}</span>
+          </div>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {data.navManagement && (
+          <>
+            <div className="px-2 py-2">
+              <div className="text-xs font-semibold text-muted-foreground">Management</div>
+            </div>
+            <NavMain items={data.navManagement} />
+          </>
+        )}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

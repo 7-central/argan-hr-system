@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Admin users who manage the HR system
+model Admin {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String      @map("password_hash")
+  name         String
+  role         AdminRole   @default(ADMIN)
+  isActive     Boolean     @default(true) @map("is_active")
+  lastLogin    DateTime?   @map("last_login")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  auditLogs    AuditLog[]  @relation("AdminAuditLogs")
+  createdClients Client[]  @relation("ClientCreator")
+
+  @@index([email])
+  @@index([isActive])
+  @@map("admins")
+}
+
+// HR consultancy clients (companies)
+model Client {
+  id                  String        @id @default(uuid())
+
+  // Business Info
+  companyName         String        @map("company_name")
+  businessId          String?       @map("business_id")
+  sector              String?
+
+  // Service Classification
+  serviceTier         ServiceTier   @map("service_tier")
+  monthlyRetainer     Decimal?      @map("monthly_retainer") @db.Decimal(10, 2)
+
+  // Primary Contact
+  contactName         String        @map("contact_name")
+  contactEmail        String        @map("contact_email")
+  contactPhone        String?       @map("contact_phone")
+
+  // Contract
+  contractStartDate   DateTime?     @map("contract_start_date") @db.Date
+  contractRenewalDate DateTime?     @map("contract_renewal_date") @db.Date
+
+  // Status
+  status              ClientStatus  @default(ACTIVE)
+
+  // Metadata
+  createdBy           String?       @map("created_by")
+  createdByAdmin      Admin?        @relation("ClientCreator", fields: [createdBy], references: [id])
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  auditLogs           AuditLog[]    @relation("ClientAuditLogs")
+
+  @@index([status])
+  @@index([serviceTier])
+  @@index([companyName])
+  @@map("clients")
+}
+
+// Audit trail for compliance and security
+model AuditLog {
+  id          String      @id @default(uuid())
+  adminId     String?     @map("admin_id")
+  admin       Admin?      @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  // What was affected
+  entityType  String      @map("entity_type") // 'client', 'admin', etc.
+  entityId    String?     @map("entity_id")
+
+  // What happened
+  action      AuditAction
+  changes     Json?       // JSON of what changed
+
+  // Context
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Optional relation to client if entity is a client
+  client      Client?     @relation("ClientAuditLogs", fields: [entityId], references: [id])
+
+  @@index([adminId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Enums
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
+}
+
+enum ServiceTier {
+  TIER_1    @map("tier_1")
+  DOC_ONLY  @map("doc_only")
+  AD_HOC    @map("ad_hoc")
+}
+
+enum ClientStatus {
+  ACTIVE    @map("active")
+  INACTIVE  @map("inactive")
+  PENDING   @map("pending")
+}
+
+enum AuditAction {
+  // Authentication
+  LOGIN
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  SESSION_EXPIRED
+  SESSION_INVALID
+
+  // Client Management
+  CLIENT_CREATED
+  CLIENT_UPDATED
+  CLIENT_DELETED
+  CLIENT_ARCHIVED
+  CLIENT_REACTIVATED
+
+  // Admin Management
+  ADMIN_CREATED
+  ADMIN_UPDATED
+  ADMIN_DELETED
+  ADMIN_DEACTIVATED
+  ADMIN_PASSWORD_CHANGED
+
+  // Data Access
+  CLIENT_VIEWED
+  CLIENT_LIST_VIEWED
+  CLIENT_EXPORTED
+
+  // System
+  SETTINGS_UPDATED
+  BACKUP_CREATED
+}
