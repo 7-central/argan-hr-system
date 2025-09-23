@@ -20,80 +20,22 @@ import {
   Download,
   FileSpreadsheet,
 } from "lucide-react"
-import { prisma } from "@/lib/system/database"
+import { dashboardService } from "@/lib/business/services"
 
 export default async function AdminDashboard() {
-  // Fetch dashboard data
-  const thirtyDaysFromNow = new Date()
-  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+  try {
+    // Fetch all dashboard metrics using the service
+    const metrics = await dashboardService.getDashboardMetrics()
+    const recentClients = await dashboardService.getRecentClients(3)
 
-  // Parallel database queries for better performance
-  const [
-    totalActiveClients,
-    serviceTierBreakdown,
-    monthlyRevenueData,
-    upcomingRenewals,
-    recentClients
-  ] = await Promise.all([
-    // Total active clients
-    prisma.client.count({
-      where: { status: 'ACTIVE' }
-    }),
+    // Extract data for display
+    const totalActiveClients = metrics.totalActiveClients
+    const tierCounts = metrics.serviceTierBreakdown
+    const totalMonthlyRevenue = metrics.totalMonthlyRevenue
+    const upcomingRenewals = metrics.upcomingRenewals
 
-    // Service tier breakdown
-    prisma.client.groupBy({
-      by: ['serviceTier'],
-      where: { status: 'ACTIVE' },
-      _count: true
-    }),
-
-    // Monthly revenue (sum of all active client retainers)
-    prisma.client.aggregate({
-      where: { status: 'ACTIVE' },
-      _sum: { monthlyRetainer: true }
-    }),
-
-    // Upcoming renewals (within 30 days)
-    prisma.client.count({
-      where: {
-        status: 'ACTIVE',
-        contractRenewalDate: {
-          gte: new Date(),
-          lte: thirtyDaysFromNow
-        }
-      }
-    }),
-
-    // Recent clients (last 3)
-    prisma.client.findMany({
-      where: { status: 'ACTIVE' },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-      select: {
-        companyName: true,
-        contactEmail: true,
-        serviceTier: true,
-        status: true
-      }
-    })
-  ])
-
-  // Process service tier data for display
-  const tierCounts = {
-    TIER_1: 0,
-    DOC_ONLY: 0,
-    AD_HOC: 0
-  }
-
-  serviceTierBreakdown.forEach(tier => {
-    tierCounts[tier.serviceTier] = tier._count
-  })
-
-  // Calculate total monthly revenue
-  const totalMonthlyRevenue = monthlyRevenueData._sum.monthlyRetainer || 0
-
-  return (
-    <SidebarInset>
+    return (
+      <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
@@ -256,5 +198,43 @@ export default async function AdminDashboard() {
         </div>
       </div>
     </SidebarInset>
-  )
+    )
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error)
+
+    // Return error fallback UI
+    return (
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error Loading Dashboard</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                We encountered an error while loading the dashboard data.
+                Please try refreshing the page or contact support if the problem persists.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </SidebarInset>
+    )
+  }
 }

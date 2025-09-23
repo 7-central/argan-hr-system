@@ -35,11 +35,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { prisma } from "@/lib/system/database"
+import { clientService } from "@/lib/business/services"
 import { ClientSearch } from "@/components/client-search"
-import type { Client } from "@prisma/client"
-
-type ClientWithSelection = Pick<Client, 'id' | 'companyName' | 'contactName' | 'contactEmail' | 'serviceTier' | 'status' | 'createdAt'>
 
 export default async function ClientsPage({
   searchParams,
@@ -50,42 +47,21 @@ export default async function ClientsPage({
   const page = Number(resolvedSearchParams.page) || 1
   const search = typeof resolvedSearchParams.search === 'string' ? resolvedSearchParams.search : ''
   const limit = 25
-  const offset = (page - 1) * limit
 
-  // Build search conditions
-  const where = search
-    ? {
-        OR: [
-          { companyName: { contains: search, mode: 'insensitive' as const } },
-          { contactEmail: { contains: search, mode: 'insensitive' as const } },
-          { contactName: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }
-    : {}
+  try {
+    // Fetch clients using the service
+    const result = await clientService.getClients({
+      page,
+      limit,
+      search: search || undefined
+    })
 
-  // Fetch clients with pagination
-  const [clients, totalCount]: [ClientWithSelection[], number] = await Promise.all([
-    prisma.client.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-      select: {
-        id: true,
-        companyName: true,
-        contactName: true,
-        contactEmail: true,
-        serviceTier: true,
-        status: true,
-        createdAt: true,
-      },
-    }),
-    prisma.client.count({ where }),
-  ])
+    const clients = result.clients
+    const totalCount = result.pagination.totalCount
+    const totalPages = result.pagination.totalPages
+    const offset = (page - 1) * limit
 
-  const totalPages = Math.ceil(totalCount / limit)
-
-  function getServiceTierLabel(tier: string): string {
+    function getServiceTierLabel(tier: string): string {
     switch (tier) {
       case 'TIER_1':
         return 'Tier 1'
@@ -277,5 +253,45 @@ export default async function ClientsPage({
         )}
       </div>
     </SidebarInset>
-  )
+    )
+  } catch (error) {
+    console.error('Failed to load clients:', error)
+
+    // Return error fallback UI
+    return (
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Clients</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-lg font-semibold mb-2">Error Loading Clients</h2>
+              <p className="text-sm text-muted-foreground">
+                We encountered an error while loading the client list.
+                Please try refreshing the page or contact support if the problem persists.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </SidebarInset>
+    )
+  }
 }
