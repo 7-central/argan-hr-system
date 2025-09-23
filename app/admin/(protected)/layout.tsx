@@ -1,14 +1,9 @@
 import { redirect } from 'next/navigation'
 import { validateAdminSession } from '@/lib/auth/session'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/app-sidebar'
-import { Separator } from '@/components/ui/separator'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-} from '@/components/ui/breadcrumb'
+import { ProtectedLayoutClient } from '@/components/layouts/protected-layout-client'
+
+// Force dynamic rendering for all protected routes
+export const dynamic = 'force-dynamic'
 
 export default async function ProtectedLayout({
   children,
@@ -23,30 +18,14 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={{
+    <ProtectedLayoutClient
+      user={{
         name: session.name,
         email: session.email,
         role: session.role,
-      }} />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b">
-          <div className="flex items-center gap-2 px-3">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <main className="flex-1">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+      }}
+    >
+      {children}
+    </ProtectedLayoutClient>
   )
 }

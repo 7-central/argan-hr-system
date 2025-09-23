@@ -1,0 +1,10 @@
+# Security report files
+*.json
+*.html
+*.xml
+*.pdf
+
+# Keep directory but ignore all report contents
+*
+!.gitignore
+!README.md

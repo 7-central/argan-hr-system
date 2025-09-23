@@ -16,8 +16,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
+import { useSidebar } from "@/lib/sidebar-context"
 
 export function TeamSwitcher({
   teams,

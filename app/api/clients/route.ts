@@ -39,10 +39,7 @@ async function createClientHandler(request: AuthenticatedRequest) {
   const body = await request.json()
 
   // Use ClientService to create client
-  const client = await clientService.createClient({
-    ...body,
-    createdBy: adminSession.adminId,
-  })
+  const client = await clientService.createClient(body, adminSession.adminId)
 
   return NextResponse.json({
     success: true,

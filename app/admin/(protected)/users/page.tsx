@@ -1,3 +1,6 @@
+// Force dynamic rendering for sidebar context
+export const dynamic = 'force-dynamic'
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,38 +10,26 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { UserPlus } from "lucide-react"
 
 export default function AdminUsersPage() {
   return (
-    <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Admin Users</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Admin Users</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </header>
 
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div className="flex flex-1 flex-col gap-4 p-4">
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Admin Users</h1>
@@ -58,6 +49,6 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </div>
-    </SidebarInset>
+    </div>
   )
 }

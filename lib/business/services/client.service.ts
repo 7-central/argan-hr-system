@@ -1,4 +1,4 @@
-import { PrismaClient, Client } from '@prisma/client'
+import { PrismaClient, Client, AuditAction, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/system/database'
 import {
   ValidationError,
@@ -25,7 +25,6 @@ export interface CreateClientDto {
   contractStartDate?: Date
   contractRenewalDate?: Date
   status?: 'ACTIVE' | 'INACTIVE' | 'PENDING'
-  createdBy: string
 }
 
 export interface UpdateClientDto {
@@ -171,7 +170,7 @@ export class ClientService {
   /**
    * Create a new client
    */
-  async createClient(data: CreateClientDto): Promise<Client> {
+  async createClient(data: CreateClientDto, adminId: string): Promise<Client> {
     // Validate required fields
     const errors = []
     if (!data.companyName) {
@@ -210,14 +209,18 @@ export class ClientService {
         contractStartDate: data.contractStartDate || null,
         contractRenewalDate: data.contractRenewalDate || null,
         status: data.status || 'ACTIVE',
-        createdBy: data.createdBy,
+        createdBy: adminId,
       },
     })
 
-    // TODO: Add audit logging in Phase 2
-    // Fire-and-forget audit logging
+    // Create audit log
     try {
-      // await this.auditClientOperation('CLIENT_CREATED', client.id, data.createdBy, data)
+      await this.auditClientOperation(
+        AuditAction.CLIENT_CREATED,
+        client.id,
+        adminId,
+        data as unknown as Record<string, unknown>
+      )
     } catch (error) {
       console.error('Failed to log audit event:', error)
       // Don't fail the operation
@@ -229,7 +232,7 @@ export class ClientService {
   /**
    * Update a client
    */
-  async updateClient(id: string, data: UpdateClientDto, _adminId: string): Promise<Client> {
+  async updateClient(id: string, data: UpdateClientDto, adminId: string): Promise<Client> {
     // Validate ID format
     if (!id || id.length < 10) {
       throw new ValidationError('Invalid client ID format')
@@ -300,10 +303,14 @@ export class ClientService {
       },
     })
 
-    // TODO: Add audit logging in Phase 2
-    // Fire-and-forget audit logging
+    // Create audit log
     try {
-      // await this.auditClientOperation('CLIENT_UPDATED', client.id, _adminId, data)
+      await this.auditClientOperation(
+        AuditAction.CLIENT_UPDATED,
+        client.id,
+        adminId,
+        data as unknown as Record<string, unknown>
+      )
     } catch (error) {
       console.error('Failed to log audit event:', error)
       // Don't fail the operation
@@ -315,7 +322,7 @@ export class ClientService {
   /**
    * Soft delete a client
    */
-  async deleteClient(id: string, _adminId: string): Promise<Client> {
+  async deleteClient(id: string, adminId: string): Promise<Client> {
     // Validate ID format
     if (!id || id.length < 10) {
       throw new ValidationError('Invalid client ID format')
@@ -338,10 +345,14 @@ export class ClientService {
       },
     })
 
-    // TODO: Add audit logging in Phase 2
-    // Fire-and-forget audit logging
+    // Create audit log
     try {
-      // await this.auditClientOperation('CLIENT_DELETED', client.id, _adminId, { status: 'INACTIVE' })
+      await this.auditClientOperation(
+        AuditAction.CLIENT_DELETED,
+        client.id,
+        adminId,
+        { status: 'INACTIVE' }
+      )
     } catch (error) {
       console.error('Failed to log audit event:', error)
       // Don't fail the operation
@@ -379,22 +390,27 @@ export class ClientService {
 
   /**
    * Private helper: Audit client operations
-   * TODO: Implement in Phase 2
+   * Creates audit trail entries for compliance tracking
    */
   private async auditClientOperation(
-    _action: string,
-    _clientId: string,
-    _adminId: string,
-    _changes: Record<string, unknown>
+    action: AuditAction,
+    clientId: string,
+    adminId: string,
+    changes: Record<string, unknown>
   ): Promise<void> {
-    // Placeholder for Phase 2 audit logging
-    // await createAuditLog({
-    //   adminId: _adminId,
-    //   action: _action,
-    //   entityType: 'client',
-    //   entityId: _clientId,
-    //   changes: _changes,
-    // })
+    await this.db.auditLog.create({
+      data: {
+        adminId,
+        action,
+        entityType: 'client',
+        entityId: clientId,
+        changes: changes as Prisma.InputJsonValue,
+        // Note: ipAddress and userAgent would ideally come from request context
+        // For now, we'll omit them as this is called from the service layer
+        ipAddress: null,
+        userAgent: null,
+      },
+    })
   }
 }
 
