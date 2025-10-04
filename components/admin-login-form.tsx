@@ -40,29 +40,23 @@ export function AdminLoginForm() {
   });
 
   async function onSubmit(data: LoginFormValues) {
-    try {
-      setIsLoading(true);
-      setError('');
+    setIsLoading(true);
+    setError('');
 
-      // Create FormData from the form values
-      const formData = new FormData();
-      formData.append('email', data.email);
-      formData.append('password', data.password);
+    // Create FormData from the form values
+    const formData = new FormData();
+    formData.append('email', data.email);
+    formData.append('password', data.password);
 
-      // Call the Server Action
-      const result = await loginAction(formData);
+    // Call the Server Action
+    const result = await loginAction(formData);
 
-      // If there's an error, display it
-      if (result && !result.success) {
-        setError(result.error || 'Invalid email or password');
-      }
-      // If successful, loginAction handles redirect automatically
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-      console.error('Login error:', err);
-    } finally {
+    // If there's an error, display it
+    if (result && !result.success) {
+      setError(result.error || 'Invalid email or password');
       setIsLoading(false);
     }
+    // If successful, loginAction handles redirect automatically (no result returned)
   }
 
   return (
