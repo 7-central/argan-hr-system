@@ -1,11 +1,12 @@
-'use client'
+'use client';
 
-import { Button, type ButtonProps } from "@/components/ui/button"
-import { useLoadingState } from "@/lib/hooks/useLoadingState"
+import { useLoadingState } from '@/lib/hooks/useLoadingState';
+
+import { Button, type ButtonProps } from '@/components/ui/button';
 
 interface LoadingButtonProps extends Omit<ButtonProps, 'loading' | 'onClick'> {
-  onClick?: () => Promise<void> | void
-  loadingText?: string
+  onClick?: () => Promise<void> | void;
+  loadingText?: string;
 }
 
 /**
@@ -31,15 +32,15 @@ export function LoadingButton({
   disabled,
   ...props
 }: LoadingButtonProps) {
-  const { isLoading, execute } = useLoadingState()
+  const { isLoading, execute } = useLoadingState();
 
   const handleClick = async () => {
-    if (!onClick) return
+    if (!onClick) return;
 
     await execute(async () => {
-      await onClick()
-    })
-  }
+      await onClick();
+    });
+  };
 
   return (
     <Button
@@ -51,5 +52,5 @@ export function LoadingButton({
     >
       {children}
     </Button>
-  )
+  );
 }

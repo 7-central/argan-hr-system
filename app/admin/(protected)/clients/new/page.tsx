@@ -1,10 +1,15 @@
-'use client'
+'use client';
 
 // Force dynamic rendering for sidebar context
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react';
+
+import { useRouter } from 'next/navigation';
+
+import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient';
+
+import { ClientForm } from '@/components/forms/client-form';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,12 +17,11 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { ClientForm } from '@/components/forms/client-form'
-import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient'
-import type { CreateClientDto } from '@/lib/business/services/client.service'
-import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient'
-import type { Client } from '@prisma/client'
+} from '@/components/ui/breadcrumb';
+
+import type { CreateClientDto } from '../actions';
+import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
+import type { Client } from '@prisma/client';
 
 /**
  * New Client Page
@@ -30,40 +34,42 @@ import type { Client } from '@prisma/client'
  * - Smooth navigation and user feedback
  */
 export default function NewClientPage() {
-  const router = useRouter()
-  const [isRedirecting, setIsRedirecting] = useState(false)
+  const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Initialize optimistic client hook with empty array
-  const { createClientOptimistic } = useOptimisticClient([])
+  const { createClientOptimistic } = useOptimisticClient([]);
 
   /**
    * Handle optimistic client creation
    * Provides immediate feedback and smooth error handling
    */
-  const handleCreateClient = async (data: CreateClientDto): Promise<OptimisticClientResponse<Client>> => {
-    const result = await createClientOptimistic(data)
+  const handleCreateClient = async (
+    data: CreateClientDto
+  ): Promise<OptimisticClientResponse<Client>> => {
+    const result = await createClientOptimistic(data);
 
     if (result.success) {
       // Success! Start redirect process
-      setIsRedirecting(true)
+      setIsRedirecting(true);
 
       // Navigate back to client list with a brief delay for user feedback
       setTimeout(() => {
-        router.push('/admin/clients')
-      }, 1000)
+        router.push('/admin/clients');
+      }, 1000);
     }
 
     // Return result for form handling (error display, etc.)
-    return result
-  }
+    return result;
+  };
 
   /**
    * Handle form cancellation
    * Navigate back to clients list
    */
   const handleCancel = () => {
-    router.back()
-  }
+    router.back();
+  };
 
   return (
     <div className="flex flex-1 flex-col">
@@ -97,5 +103,5 @@ export default function NewClientPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

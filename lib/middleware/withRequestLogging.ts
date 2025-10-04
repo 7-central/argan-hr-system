@@ -2,8 +2,17 @@
 // Logs incoming requests and outgoing responses for monitoring
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { Handler, Middleware } from './compose';
-import { logInfo, logWarn } from '@/lib/system/logger';
+
+import { logInfo, logWarn } from '@/lib/utils/system/logger';
+
+/**
+ * Middleware handler types
+ */
+type Handler<T = unknown> = (
+  request: NextRequest,
+  context: T
+) => Promise<NextResponse> | NextResponse;
+type Middleware<T = unknown> = (handler: Handler<T>) => Handler<T>;
 
 /**
  * Extract relevant request information for logging
@@ -85,9 +94,7 @@ export function withAccessLog<T = unknown>(): Middleware<T> {
 
       // Simple access log format
       const duration = Date.now() - start;
-      console.log(
-        `${request.method} ${request.nextUrl.pathname} ${response.status} ${duration}ms`
-      );
+      console.log(`${request.method} ${request.nextUrl.pathname} ${response.status} ${duration}ms`);
 
       return response;
     };

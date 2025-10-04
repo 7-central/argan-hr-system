@@ -1,31 +1,28 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-import type { CreateClientDto } from '@/lib/business/services/client.service'
-import type { Client } from '@prisma/client'
-import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient'
+} from '@/components/ui/select';
+
+import type { CreateClientDto } from '@/app/admin/(protected)/clients/actions';
+import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
+import type { Client } from '@prisma/client';
 
 /**
  * Client form validation schema
@@ -50,7 +47,7 @@ const clientFormSchema = z.object({
   monthlyRetainer: z
     .string()
     .optional()
-    .transform(val => val && val !== '' ? Number(val) : undefined)
+    .transform((val) => (val && val !== '' ? Number(val) : undefined))
     .pipe(
       z
         .number()
@@ -72,22 +69,16 @@ const clientFormSchema = z.object({
     .max(50, 'Phone number must be less than 50 characters')
     .optional()
     .or(z.literal('')),
-  contractStartDate: z
-    .string()
-    .optional()
-    .or(z.literal('')),
-  contractRenewalDate: z
-    .string()
-    .optional()
-    .or(z.literal('')),
+  contractStartDate: z.string().optional().or(z.literal('')),
+  contractRenewalDate: z.string().optional().or(z.literal('')),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).default('ACTIVE'),
-})
+});
 
 /**
  * Form data type derived from schema
  * Used for type-safe form handling
  */
-export type ClientFormData = z.infer<typeof clientFormSchema>
+export type ClientFormData = z.infer<typeof clientFormSchema>;
 
 /**
  * Props for the ClientForm component
@@ -95,15 +86,15 @@ export type ClientFormData = z.infer<typeof clientFormSchema>
  */
 export interface ClientFormProps {
   /** Existing client data for edit mode (optional) */
-  client?: Client
+  client?: Client;
   /** Function called on successful submission */
-  onSubmit: (data: CreateClientDto) => Promise<OptimisticClientResponse<Client>>
+  onSubmit: (data: CreateClientDto) => Promise<OptimisticClientResponse<Client>>;
   /** Function called when form is cancelled */
-  onCancel?: () => void
+  onCancel?: () => void;
   /** Whether the form is in a loading state */
-  isLoading?: boolean
+  isLoading?: boolean;
   /** Additional CSS classes */
-  className?: string
+  className?: string;
 }
 
 /**
@@ -135,9 +126,9 @@ export function ClientForm({
   isLoading = false,
   className = '',
 }: ClientFormProps) {
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Set up form with validation
   const form = useForm<ClientFormData>({
@@ -149,7 +140,7 @@ export function ClientForm({
       sector: client?.sector || '',
       serviceTier: client?.serviceTier || 'TIER_1',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      monthlyRetainer: client?.monthlyRetainer ? String(client.monthlyRetainer) : '' as any,
+      monthlyRetainer: client?.monthlyRetainer ? String(client.monthlyRetainer) : ('' as any),
       contactName: client?.contactName || '',
       contactEmail: client?.contactEmail || '',
       contactPhone: client?.contactPhone || '',
@@ -161,16 +152,16 @@ export function ClientForm({
         : '',
       status: client?.status || 'ACTIVE',
     },
-  })
+  });
 
   /**
    * Handle form submission with optimistic updates
    * Preserves form data on errors for easy correction
    */
   const handleSubmit = async (data: ClientFormData) => {
-    setIsSubmitting(true)
-    setSubmitError(null)
-    setSubmitSuccess(false)
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
 
     try {
       // Transform form data for API
@@ -183,40 +174,46 @@ export function ClientForm({
         contactName: data.contactName,
         contactEmail: data.contactEmail,
         contactPhone: data.contactPhone || undefined,
-        contractStartDate: data.contractStartDate && data.contractStartDate !== '' ? new Date(data.contractStartDate) : undefined,
-        contractRenewalDate: data.contractRenewalDate && data.contractRenewalDate !== '' ? new Date(data.contractRenewalDate) : undefined,
+        contractStartDate:
+          data.contractStartDate && data.contractStartDate !== ''
+            ? new Date(data.contractStartDate)
+            : undefined,
+        contractRenewalDate:
+          data.contractRenewalDate && data.contractRenewalDate !== ''
+            ? new Date(data.contractRenewalDate)
+            : undefined,
         status: data.status,
-      }
+      };
 
       // Call optimistic submit function
-      const result = await onSubmit(submitData)
+      const result = await onSubmit(submitData);
 
       if (result.success) {
         // Success! Show brief success state
-        setSubmitSuccess(true)
+        setSubmitSuccess(true);
 
         // Reset form only if creating new client
         if (!client) {
-          form.reset()
+          form.reset();
         }
       } else {
         // Error occurred - form data is preserved automatically
-        setSubmitError(result.error || 'An unexpected error occurred')
+        setSubmitError(result.error || 'An unexpected error occurred');
       }
     } catch (error) {
       // Catch any unexpected errors
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-      setSubmitError(errorMessage)
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setSubmitError(errorMessage);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const isEditMode = !!client
-  const formTitle = isEditMode ? 'Edit Client' : 'Create New Client'
+  const isEditMode = !!client;
+  const formTitle = isEditMode ? 'Edit Client' : 'Create New Client';
   const formDescription = isEditMode
     ? 'Update client information and preferences'
-    : 'Add a new client to your HR consultancy system'
+    : 'Add a new client to your HR consultancy system';
 
   return (
     <Card className={className}>
@@ -242,9 +239,7 @@ export function ClientForm({
           {submitError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {submitError}
-              </AlertDescription>
+              <AlertDescription>{submitError}</AlertDescription>
             </Alert>
           )}
 
@@ -261,9 +256,7 @@ export function ClientForm({
                 placeholder="Enter company name"
               />
               {form.formState.errors.companyName && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.companyName.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.companyName.message}</p>
               )}
             </div>
 
@@ -276,9 +269,7 @@ export function ClientForm({
                 placeholder="Optional business ID"
               />
               {form.formState.errors.businessId && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.businessId.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.businessId.message}</p>
               )}
             </div>
 
@@ -291,9 +282,7 @@ export function ClientForm({
                 placeholder="e.g., Technology, Healthcare"
               />
               {form.formState.errors.sector && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.sector.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.sector.message}</p>
               )}
             </div>
 
@@ -303,7 +292,9 @@ export function ClientForm({
               </Label>
               <Select
                 value={form.watch('serviceTier')}
-                onValueChange={(value) => form.setValue('serviceTier', value as 'TIER_1' | 'DOC_ONLY' | 'AD_HOC')}
+                onValueChange={(value) =>
+                  form.setValue('serviceTier', value as 'TIER_1' | 'DOC_ONLY' | 'AD_HOC')
+                }
                 disabled={isSubmitting || isLoading}
               >
                 <SelectTrigger id="serviceTier">
@@ -316,9 +307,7 @@ export function ClientForm({
                 </SelectContent>
               </Select>
               {form.formState.errors.serviceTier && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.serviceTier.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.serviceTier.message}</p>
               )}
             </div>
           </div>
@@ -348,7 +337,9 @@ export function ClientForm({
               <Label htmlFor="status">Status</Label>
               <Select
                 value={form.watch('status')}
-                onValueChange={(value) => form.setValue('status', value as 'ACTIVE' | 'INACTIVE' | 'PENDING')}
+                onValueChange={(value) =>
+                  form.setValue('status', value as 'ACTIVE' | 'INACTIVE' | 'PENDING')
+                }
                 disabled={isSubmitting || isLoading}
               >
                 <SelectTrigger id="status">
@@ -361,9 +352,7 @@ export function ClientForm({
                 </SelectContent>
               </Select>
               {form.formState.errors.status && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.status.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.status.message}</p>
               )}
             </div>
           </div>
@@ -381,9 +370,7 @@ export function ClientForm({
                 placeholder="Enter contact person name"
               />
               {form.formState.errors.contactName && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.contactName.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.contactName.message}</p>
               )}
             </div>
 
@@ -399,9 +386,7 @@ export function ClientForm({
                 placeholder="contact@company.com"
               />
               {form.formState.errors.contactEmail && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.contactEmail.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.contactEmail.message}</p>
               )}
             </div>
 
@@ -415,9 +400,7 @@ export function ClientForm({
                 placeholder="+44 20 1234 5678"
               />
               {form.formState.errors.contactPhone && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.contactPhone.message}
-                </p>
+                <p className="text-sm text-red-500">{form.formState.errors.contactPhone.message}</p>
               )}
             </div>
           </div>
@@ -457,18 +440,16 @@ export function ClientForm({
 
           {/* Form Actions */}
           <div className="flex gap-4 pt-4">
-            <Button
-              type="submit"
-              disabled={isSubmitting || isLoading}
-              className="min-w-[120px]"
-            >
+            <Button type="submit" disabled={isSubmitting || isLoading} className="min-w-[120px]">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {isEditMode ? 'Updating...' : 'Creating...'}
                 </>
+              ) : isEditMode ? (
+                'Update Client'
               ) : (
-                isEditMode ? 'Update Client' : 'Create Client'
+                'Create Client'
               )}
             </Button>
 
@@ -486,5 +467,5 @@ export function ClientForm({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

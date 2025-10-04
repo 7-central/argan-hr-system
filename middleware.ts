@@ -58,16 +58,13 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.includes('.') || // static files
-    pathname.startsWith('/api/health') || // health checks
     pathname.startsWith('/api/auth/login') // login endpoint
   ) {
     return NextResponse.next();
   }
 
   // Check if this is a protected admin route
-  const isProtectedRoute =
-    pathname.startsWith('/admin') &&
-    !pathname.startsWith('/admin/login');
+  const isProtectedRoute = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login');
 
   // For protected routes, validate session
   if (isProtectedRoute) {

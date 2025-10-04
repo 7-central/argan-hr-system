@@ -1,95 +1,92 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import {
-  Building2,
-  FileText,
-  LayoutDashboard,
-  Settings,
-  Users,
-} from "lucide-react"
+import * as React from 'react';
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+import { Building2, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
+
+import { NavMain } from '@/components/nav-main';
+import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar';
 
 // Navigation data for Argan HR
 const data = {
   user: {
-    name: "Admin User",
-    email: "admin@argan.hr",
-    avatar: "/avatars/admin.jpg",
+    name: 'Admin User',
+    email: 'admin@argan.hr',
+    avatar: '/avatars/admin.jpg',
   },
   company: {
-    name: "Argan HR",
+    name: 'Argan HR',
     logo: Building2,
-    plan: "Enterprise",
+    plan: 'Enterprise',
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "/admin",
+      title: 'Dashboard',
+      url: '/admin',
       icon: LayoutDashboard,
       isActive: true,
     },
     {
-      title: "Clients",
-      url: "/admin/clients",
+      title: 'Clients',
+      url: '/admin/clients',
       icon: Users,
       items: [
         {
-          title: "All Clients",
-          url: "/admin/clients",
+          title: 'All Clients',
+          url: '/admin/clients',
         },
-        {
-          title: "Add New Client",
-          url: "/admin/clients/new",
-        },
+        // {
+        //   title: "Add New Client",
+        //   url: "/admin/clients/new",
+        // },
       ],
     },
     {
-      title: "Documents",
-      url: "#",
+      title: 'Documents',
+      url: '#',
       icon: FileText,
-      badge: "Coming Soon",
+      badge: 'Coming Soon',
       disabled: true,
     },
   ],
   navManagement: [
     {
-      title: "Admin Users",
-      url: "/admin/users",
+      title: 'Admin Users',
+      url: '/admin/users',
       icon: Users,
     },
     {
-      title: "Settings",
-      url: "/admin/settings",
+      title: 'Settings',
+      url: '/admin/settings',
       icon: Settings,
     },
   ],
-}
+};
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: {
-    name: string
-    email: string
-    role?: string
-  }
+    name: string;
+    email: string;
+    role?: string;
+  };
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   // Use provided user data or fallback to defaults
-  const userData = user ? {
-    name: user.name,
-    email: user.email,
-    avatar: "/avatars/admin.jpg",
-  } : data.user
+  const userData = user
+    ? {
+        name: user.name,
+        email: user.email,
+        avatar: '/avatars/admin.jpg',
+      }
+    : data.user;
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -119,5 +116,5 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

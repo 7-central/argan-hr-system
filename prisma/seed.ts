@@ -1,13 +1,13 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting seed...')
+  console.log('🌱 Starting seed...');
 
   // Create super admin user
-  const hashedPassword = await bcrypt.hash('ChangeMe123!', 12)
+  const hashedPassword = await bcrypt.hash('ChangeMe123!', 12);
 
   const superAdmin = await prisma.admin.upsert({
     where: { email: 'admin@argan.hr' },
@@ -19,9 +19,9 @@ async function main() {
       role: 'SUPER_ADMIN',
       isActive: true,
     },
-  })
+  });
 
-  console.log('✅ Created super admin:', superAdmin.email)
+  console.log('✅ Created super admin:', superAdmin.email);
 
   // Create sample clients for development
   const sampleClients = [
@@ -64,50 +64,33 @@ async function main() {
       status: 'PENDING' as const,
       createdBy: superAdmin.id,
     },
-  ]
+  ];
 
   for (const clientData of sampleClients) {
     // Check if client already exists by email
     const existingClient = await prisma.client.findFirst({
-      where: { contactEmail: clientData.contactEmail }
-    })
+      where: { contactEmail: clientData.contactEmail },
+    });
 
     if (!existingClient) {
       const client = await prisma.client.create({
         data: clientData,
-      })
-      console.log('✅ Created client:', client.companyName)
+      });
+      console.log('✅ Created client:', client.companyName);
     } else {
-      console.log('⏭️ Client already exists:', existingClient.companyName)
+      console.log('⏭️ Client already exists:', existingClient.companyName);
     }
   }
 
-  // Create initial audit log
-  await prisma.auditLog.create({
-    data: {
-      adminId: superAdmin.id,
-      entityType: 'system',
-      entityId: null,
-      action: 'SETTINGS_UPDATED',
-      changes: {
-        description: 'Initial system setup completed',
-        timestamp: new Date().toISOString(),
-      },
-      ipAddress: '127.0.0.1',
-      userAgent: 'Prisma Seed Script',
-    },
-  })
-
-  console.log('✅ Created initial audit log')
-  console.log('🎉 Seed completed successfully!')
+  console.log('🎉 Seed completed successfully!');
 }
 
 main()
   .then(async () => {
-    await prisma.$disconnect()
+    await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error('❌ Seed failed:', e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+    console.error('❌ Seed failed:', e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

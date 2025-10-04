@@ -1,5 +1,7 @@
 // Force dynamic rendering for sidebar context
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
+
+import { UserPlus } from 'lucide-react';
 
 import {
   Breadcrumb,
@@ -8,9 +10,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Button } from "@/components/ui/button"
-import { UserPlus } from "lucide-react"
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 
 export default function AdminUsersPage() {
   return (
@@ -50,5 +51,5 @@ export default function AdminUsersPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

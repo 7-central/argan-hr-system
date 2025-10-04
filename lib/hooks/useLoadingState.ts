@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback } from 'react';
 
 /**
  * Custom hook for managing loading states with async operations
@@ -20,8 +20,8 @@ import { useState, useCallback } from 'react'
  * ```
  */
 export function useLoadingState() {
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   /**
    * Execute an async operation with automatic loading state management
@@ -29,36 +29,36 @@ export function useLoadingState() {
    * @returns Promise that resolves with the operation result
    */
   const execute = useCallback(async <T>(operation: () => Promise<T>): Promise<T | undefined> => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const result = await operation()
-      return result
+      const result = await operation();
+      return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      setError(errorMessage)
-      console.error('Loading state operation failed:', err)
-      return undefined
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      console.error('Loading state operation failed:', err);
+      return undefined;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   /**
    * Reset error state manually
    */
   const clearError = useCallback(() => {
-    setError(null)
-  }, [])
+    setError(null);
+  }, []);
 
   /**
    * Reset all state to initial values
    */
   const reset = useCallback(() => {
-    setIsLoading(false)
-    setError(null)
-  }, [])
+    setIsLoading(false);
+    setError(null);
+  }, []);
 
   return {
     isLoading,
@@ -66,7 +66,7 @@ export function useLoadingState() {
     execute,
     clearError,
     reset,
-  }
+  };
 }
 
 /**
@@ -90,36 +90,36 @@ export function useLoadingState() {
 export function useMultipleLoadingStates(keys: string[]) {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
     keys.reduce((acc, key) => ({ ...acc, [key]: false }), {})
-  )
+  );
 
   const setLoading = useCallback((key: string, loading: boolean) => {
-    setLoadingStates(prev => ({ ...prev, [key]: loading }))
-  }, [])
+    setLoadingStates((prev) => ({ ...prev, [key]: loading }));
+  }, []);
 
-  const execute = useCallback(async <T>(
-    key: string,
-    operation: () => Promise<T>
-  ): Promise<T | undefined> => {
-    setLoading(key, true)
-    try {
-      const result = await operation()
-      return result
-    } catch (err) {
-      console.error(`Loading state operation failed for ${key}:`, err)
-      return undefined
-    } finally {
-      setLoading(key, false)
-    }
-  }, [setLoading])
+  const execute = useCallback(
+    async <T>(key: string, operation: () => Promise<T>): Promise<T | undefined> => {
+      setLoading(key, true);
+      try {
+        const result = await operation();
+        return result;
+      } catch (err) {
+        console.error(`Loading state operation failed for ${key}:`, err);
+        return undefined;
+      } finally {
+        setLoading(key, false);
+      }
+    },
+    [setLoading]
+  );
 
   const resetAll = useCallback(() => {
-    setLoadingStates(keys.reduce((acc, key) => ({ ...acc, [key]: false }), {}))
-  }, [keys])
+    setLoadingStates(keys.reduce((acc, key) => ({ ...acc, [key]: false }), {}));
+  }, [keys]);
 
   return {
     isLoading: loadingStates,
     setLoading,
     execute,
     resetAll,
-  }
+  };
 }

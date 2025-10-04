@@ -1,18 +1,20 @@
-'use client'
+'use client';
 
-import { useOptimistic, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import type { Client } from '@prisma/client'
-import type { CreateClientDto, UpdateClientDto } from '@/lib/business/services/client.service'
+import { useOptimistic, useCallback } from 'react';
+
+import { useRouter } from 'next/navigation';
+
+import type { CreateClientDto, UpdateClientDto } from '@/app/admin/(protected)/clients/actions';
+import type { Client } from '@prisma/client';
 
 /**
  * Optimistic state for client operations
  * Used by useOptimistic reducer to manage client state transitions
  */
 export interface OptimisticClientAction {
-  type: 'CREATE' | 'UPDATE' | 'DELETE'
-  client: CreateClientDto | UpdateClientDto | { id: string }
-  tempId?: string
+  type: 'CREATE' | 'UPDATE' | 'DELETE';
+  client: CreateClientDto | UpdateClientDto | { id: string };
+  tempId?: string;
 }
 
 /**
@@ -20,9 +22,9 @@ export interface OptimisticClientAction {
  * Extends base Client with loading and error states
  */
 export interface OptimisticClient extends Client {
-  _optimistic?: boolean
-  _pending?: boolean
-  _error?: string | null
+  _optimistic?: boolean;
+  _pending?: boolean;
+  _error?: string | null;
 }
 
 /**
@@ -39,7 +41,7 @@ function optimisticClientReducer(
 ): OptimisticClient[] {
   switch (action.type) {
     case 'CREATE': {
-      const clientData = action.client as CreateClientDto
+      const clientData = action.client as CreateClientDto;
       const optimisticClient: OptimisticClient = {
         id: action.tempId || 'temp-id',
         companyName: clientData.companyName || '',
@@ -60,32 +62,32 @@ function optimisticClientReducer(
         _optimistic: true,
         _pending: true,
         _error: null,
-      }
+      };
 
-      return [optimisticClient, ...state]
+      return [optimisticClient, ...state];
     }
 
     case 'UPDATE': {
-      const updateData = action.client as UpdateClientDto & { id: string }
-      return state.map(client => {
+      const updateData = action.client as UpdateClientDto & { id: string };
+      return state.map((client) => {
         if (client.id === updateData.id) {
           return {
             ...client,
             ...updateData,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            monthlyRetainer: updateData.monthlyRetainer as any ?? client.monthlyRetainer,
+            monthlyRetainer: (updateData.monthlyRetainer as any) ?? client.monthlyRetainer,
             _optimistic: true,
             _pending: true,
             _error: null,
-          }
+          };
         }
-        return client
-      })
+        return client;
+      });
     }
 
     case 'DELETE': {
-      const deleteData = action.client as { id: string }
-      return state.map(client => {
+      const deleteData = action.client as { id: string };
+      return state.map((client) => {
         if (client.id === deleteData.id) {
           return {
             ...client,
@@ -93,14 +95,14 @@ function optimisticClientReducer(
             _optimistic: true,
             _pending: true,
             _error: null,
-          }
+          };
         }
-        return client
-      })
+        return client;
+      });
     }
 
     default:
-      return state
+      return state;
   }
 }
 
@@ -109,9 +111,9 @@ function optimisticClientReducer(
  * Provides consistent return structure with success/error states
  */
 export interface OptimisticClientResponse<T = void> {
-  success: boolean
-  data?: T
-  error?: string
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 /**
@@ -142,20 +144,20 @@ export interface OptimisticClientResponse<T = void> {
  * ```
  */
 export function useOptimisticClient(initialClients: Client[]) {
-  const router = useRouter()
+  const router = useRouter();
 
   // Convert initial clients to optimistic clients
-  const initialOptimisticClients: OptimisticClient[] = initialClients.map(client => ({
+  const initialOptimisticClients: OptimisticClient[] = initialClients.map((client) => ({
     ...client,
     _optimistic: false,
     _pending: false,
     _error: null,
-  }))
+  }));
 
-  const [optimisticClients, addOptimistic] = useOptimistic<OptimisticClient[], OptimisticClientAction>(
-    initialOptimisticClients,
-    optimisticClientReducer
-  )
+  const [optimisticClients, addOptimistic] = useOptimistic<
+    OptimisticClient[],
+    OptimisticClientAction
+  >(initialOptimisticClients, optimisticClientReducer);
 
   /**
    * Create a client with optimistic updates
@@ -164,58 +166,60 @@ export function useOptimisticClient(initialClients: Client[]) {
    * @param data - Client creation data
    * @returns Promise with operation result
    */
-  const createClientOptimistic = useCallback(async (
-    data: CreateClientDto
-  ): Promise<OptimisticClientResponse<Client>> => {
-    // Generate temporary ID for optimistic update
-    const tempId = `temp-${Date.now()}`
+  const createClientOptimistic = useCallback(
+    async (data: CreateClientDto): Promise<OptimisticClientResponse<Client>> => {
+      // Generate temporary ID for optimistic update
+      const tempId = `temp-${Date.now()}`;
 
-    // Apply optimistic update immediately
-    addOptimistic({
-      type: 'CREATE',
-      client: data,
-      tempId,
-    })
+      // Apply optimistic update immediately
+      addOptimistic({
+        type: 'CREATE',
+        client: data,
+        tempId,
+      });
 
-    try {
-      // Call API to create client
-      const response = await fetch('/api/clients', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
+      try {
+        // Call API to create client
+        const response = await fetch('/api/clients', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
 
-      const result = await response.json()
+        const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        // Server error - rollback optimistic update
-        // Remove the optimistic client by filtering it out
-        const errorMessage = result.error || 'Failed to create client'
-        throw new Error(errorMessage)
+        if (!response.ok || !result.success) {
+          // Server error - rollback optimistic update
+          // Remove the optimistic client by filtering it out
+          const errorMessage = result.error || 'Failed to create client';
+          throw new Error(errorMessage);
+        }
+
+        // Success - the server state will update naturally
+        // The temporary client will be replaced by real data
+        router.refresh();
+
+        return {
+          success: true,
+          data: result.data,
+        };
+      } catch (error) {
+        // Error occurred - optimistic state needs to be handled
+        // Note: In a production app, we'd want to trigger a state refresh
+        // For now, we'll rely on the user refreshing or navigating away
+        const errorMessage =
+          error instanceof Error ? error.message : 'An unexpected error occurred';
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
       }
-
-      // Success - the server state will update naturally
-      // The temporary client will be replaced by real data
-      router.refresh()
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error) {
-      // Error occurred - optimistic state needs to be handled
-      // Note: In a production app, we'd want to trigger a state refresh
-      // For now, we'll rely on the user refreshing or navigating away
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-
-      return {
-        success: false,
-        error: errorMessage,
-      }
-    }
-  }, [addOptimistic, router])
+    },
+    [addOptimistic, router]
+  );
 
   /**
    * Update a client with optimistic updates
@@ -225,51 +229,52 @@ export function useOptimisticClient(initialClients: Client[]) {
    * @param data - Update data
    * @returns Promise with operation result
    */
-  const updateClientOptimistic = useCallback(async (
-    id: string,
-    data: UpdateClientDto
-  ): Promise<OptimisticClientResponse<Client>> => {
-    // Apply optimistic update immediately
-    addOptimistic({
-      type: 'UPDATE',
-      client: { id, ...data },
-    })
+  const updateClientOptimistic = useCallback(
+    async (id: string, data: UpdateClientDto): Promise<OptimisticClientResponse<Client>> => {
+      // Apply optimistic update immediately
+      addOptimistic({
+        type: 'UPDATE',
+        client: { id, ...data },
+      });
 
-    try {
-      // Call API to update client
-      const response = await fetch(`/api/clients/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
+      try {
+        // Call API to update client
+        const response = await fetch(`/api/clients/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
 
-      const result = await response.json()
+        const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        // Server error - rollback optimistic update
-        const errorMessage = result.error || 'Failed to update client'
-        throw new Error(errorMessage)
+        if (!response.ok || !result.success) {
+          // Server error - rollback optimistic update
+          const errorMessage = result.error || 'Failed to update client';
+          throw new Error(errorMessage);
+        }
+
+        // Success - refresh to get latest state
+        router.refresh();
+
+        return {
+          success: true,
+          data: result.data,
+        };
+      } catch (error) {
+        // Error occurred - need to handle rollback
+        const errorMessage =
+          error instanceof Error ? error.message : 'An unexpected error occurred';
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
       }
-
-      // Success - refresh to get latest state
-      router.refresh()
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error) {
-      // Error occurred - need to handle rollback
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-
-      return {
-        success: false,
-        error: errorMessage,
-      }
-    }
-  }, [addOptimistic, router])
+    },
+    [addOptimistic, router]
+  );
 
   /**
    * Delete a client with optimistic updates (soft delete)
@@ -278,57 +283,59 @@ export function useOptimisticClient(initialClients: Client[]) {
    * @param id - Client ID to delete
    * @returns Promise with operation result
    */
-  const deleteClientOptimistic = useCallback(async (
-    id: string
-  ): Promise<OptimisticClientResponse<Client>> => {
-    // Apply optimistic update immediately (soft delete)
-    addOptimistic({
-      type: 'DELETE',
-      client: { id },
-    })
+  const deleteClientOptimistic = useCallback(
+    async (id: string): Promise<OptimisticClientResponse<Client>> => {
+      // Apply optimistic update immediately (soft delete)
+      addOptimistic({
+        type: 'DELETE',
+        client: { id },
+      });
 
-    try {
-      // Call API to delete client
-      const response = await fetch(`/api/clients/${id}`, {
-        method: 'DELETE',
-      })
+      try {
+        // Call API to delete client
+        const response = await fetch(`/api/clients/${id}`, {
+          method: 'DELETE',
+        });
 
-      const result = await response.json()
+        const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        // Server error - rollback optimistic update
-        const errorMessage = result.error || 'Failed to delete client'
-        throw new Error(errorMessage)
+        if (!response.ok || !result.success) {
+          // Server error - rollback optimistic update
+          const errorMessage = result.error || 'Failed to delete client';
+          throw new Error(errorMessage);
+        }
+
+        // Success - refresh to get latest state
+        router.refresh();
+
+        return {
+          success: true,
+          data: result.data,
+        };
+      } catch (error) {
+        // Error occurred - need to handle rollback
+        const errorMessage =
+          error instanceof Error ? error.message : 'An unexpected error occurred';
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
       }
-
-      // Success - refresh to get latest state
-      router.refresh()
-
-      return {
-        success: true,
-        data: result.data,
-      }
-    } catch (error) {
-      // Error occurred - need to handle rollback
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-
-      return {
-        success: false,
-        error: errorMessage,
-      }
-    }
-  }, [addOptimistic, router])
+    },
+    [addOptimistic, router]
+  );
 
   return {
     optimisticClients,
     createClientOptimistic,
     updateClientOptimistic,
     deleteClientOptimistic,
-  }
+  };
 }
 
 /**
  * Type for the useOptimisticClient hook return value
  * Provides full typing for consumers of the hook
  */
-export type UseOptimisticClientReturn = ReturnType<typeof useOptimisticClient>
+export type UseOptimisticClientReturn = ReturnType<typeof useOptimisticClient>;

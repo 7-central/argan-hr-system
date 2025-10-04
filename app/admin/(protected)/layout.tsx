@@ -1,20 +1,18 @@
-import { redirect } from 'next/navigation'
-import { validateAdminSession } from '@/lib/auth/session'
-import { ProtectedLayoutClient } from '@/components/layouts/protected-layout-client'
+import { redirect } from 'next/navigation';
+
+import { validateSession } from '@/lib/utils/system/session';
+
+import { ProtectedLayoutClient } from '@/components/layouts/protected-layout-client';
 
 // Force dynamic rendering for all protected routes
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   // Validate session - redirect to login if not authenticated
-  const session = await validateAdminSession()
+  const session = await validateSession();
 
   if (!session) {
-    redirect('/admin/login')
+    redirect('/admin/login');
   }
 
   return (
@@ -27,5 +25,5 @@ export default async function ProtectedLayout({
     >
       {children}
     </ProtectedLayoutClient>
-  )
+  );
 }

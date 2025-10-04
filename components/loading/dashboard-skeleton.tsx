@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Dashboard skeleton component that matches the exact layout of the dashboard page
@@ -69,5 +69,5 @@ export function DashboardSkeleton() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

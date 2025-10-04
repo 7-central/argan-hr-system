@@ -2,10 +2,19 @@
 // Catches and formats both System and Business errors appropriately
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { Handler, Middleware } from './compose';
-import { BusinessError, isBusinessError } from '@/lib/business/errors';
-import { SystemError } from '@/lib/system/errors';
-import { logError } from '@/lib/system/logger';
+
+import { AppError, isAppError } from '@/lib/errors';
+import { SystemError } from '@/lib/errors/system';
+import { logError } from '@/lib/utils/system/logger';
+
+/**
+ * Middleware handler types
+ */
+type Handler<T = unknown> = (
+  request: NextRequest,
+  context: T
+) => Promise<NextResponse> | NextResponse;
+type Middleware<T = unknown> = (handler: Handler<T>) => Handler<T>;
 
 /**
  * Error response structure
@@ -25,27 +34,24 @@ interface ErrorResponse {
  * Generate a unique request ID for tracking
  */
 function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
  * Format error for API response
  */
-function formatErrorResponse(
-  error: Error,
-  requestId: string
-): ErrorResponse {
+function formatErrorResponse(error: Error, requestId: string): ErrorResponse {
   const timestamp = new Date().toISOString();
 
   // Handle Business errors (expected, operational)
-  if (isBusinessError(error)) {
-    const businessError = error as BusinessError;
+  if (isAppError(error)) {
+    const appError = error as AppError;
     return {
       success: false,
       error: {
-        message: businessError.message,
-        code: businessError.code,
-        details: businessError.details,
+        message: appError.message,
+        code: appError.code,
+        details: appError.details,
       },
       requestId,
       timestamp,
@@ -110,18 +116,15 @@ export function withErrorHandling<T = unknown>(): Middleware<T> {
         // Determine status code based on error type
         let statusCode = 500;
 
-        if (isBusinessError(error)) {
-          statusCode = (error as BusinessError).statusCode;
+        if (isAppError(error)) {
+          statusCode = (error as AppError).statusCode;
         } else if (error instanceof SystemError) {
           // System errors typically indicate service unavailable
           statusCode = 503;
         }
 
         // Format error response
-        const errorResponse = formatErrorResponse(
-          error as Error,
-          requestId
-        );
+        const errorResponse = formatErrorResponse(error as Error, requestId);
 
         // Return error response with appropriate status code
         return NextResponse.json(errorResponse, {

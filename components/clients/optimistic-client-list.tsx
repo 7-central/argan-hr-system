@@ -1,23 +1,12 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { useState } from 'react';
+
+import { Edit, Trash2, Eye, MoreHorizontal, Loader2, AlertCircle, Clock } from 'lucide-react';
+
+import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,33 +16,40 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-  Edit,
-  Trash2,
-  Eye,
-  MoreHorizontal,
-  Loader2,
-  AlertCircle,
-  Clock,
-} from 'lucide-react'
-import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient'
-import type { OptimisticClient } from '@/lib/hooks/useOptimisticClient'
-import type { Client } from '@prisma/client'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+import type { OptimisticClient } from '@/lib/hooks/useOptimisticClient';
+import type { Client } from '@prisma/client';
 
 /**
  * Props for the OptimisticClientList component
  */
 export interface OptimisticClientListProps {
   /** Initial client data from server */
-  clients: Client[]
+  clients: Client[];
   /** Search term for filtering results */
-  search?: string
+  search?: string;
   /** Callback when edit action is triggered */
-  onEdit?: (client: Client) => void
+  onEdit?: (client: Client) => void;
   /** Callback when view action is triggered */
-  onView?: (client: Client) => void
+  onView?: (client: Client) => void;
 }
 
 /**
@@ -73,29 +69,29 @@ export function OptimisticClientList({
   onEdit,
   onView,
 }: OptimisticClientListProps) {
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Initialize optimistic client management
-  const { optimisticClients, deleteClientOptimistic } = useOptimisticClient(clients)
+  const { optimisticClients, deleteClientOptimistic } = useOptimisticClient(clients);
 
   /**
    * Handle optimistic client deletion
    * Shows immediate feedback then handles server response
    */
   const handleDeleteClient = async (client: Client) => {
-    setDeleteError(null)
+    setDeleteError(null);
 
-    const result = await deleteClientOptimistic(client.id)
+    const result = await deleteClientOptimistic(client.id);
 
     if (!result.success) {
       // Show error message for failed deletion
-      setDeleteError(result.error || 'Failed to delete client')
+      setDeleteError(result.error || 'Failed to delete client');
     }
 
     // Close dialog
-    setClientToDelete(null)
-  }
+    setClientToDelete(null);
+  };
 
   /**
    * Get service tier display label
@@ -103,13 +99,13 @@ export function OptimisticClientList({
   function getServiceTierLabel(tier: string): string {
     switch (tier) {
       case 'TIER_1':
-        return 'Tier 1'
+        return 'Tier 1';
       case 'DOC_ONLY':
-        return 'Doc Only'
+        return 'Doc Only';
       case 'AD_HOC':
-        return 'Ad-hoc'
+        return 'Ad-hoc';
       default:
-        return tier
+        return tier;
     }
   }
 
@@ -119,13 +115,13 @@ export function OptimisticClientList({
   function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' {
     switch (status) {
       case 'ACTIVE':
-        return 'default'
+        return 'default';
       case 'PENDING':
-        return 'secondary'
+        return 'secondary';
       case 'INACTIVE':
-        return 'destructive'
+        return 'destructive';
       default:
-        return 'secondary'
+        return 'secondary';
     }
   }
 
@@ -133,7 +129,7 @@ export function OptimisticClientList({
    * Get optimistic state indicator
    */
   function getOptimisticIndicator(client: OptimisticClient) {
-    if (!client._optimistic) return null
+    if (!client._optimistic) return null;
 
     if (client._pending) {
       return (
@@ -141,7 +137,7 @@ export function OptimisticClientList({
           <Clock className="h-3 w-3 animate-pulse" />
           Updating...
         </div>
-      )
+      );
     }
 
     if (client._error) {
@@ -150,10 +146,10 @@ export function OptimisticClientList({
           <AlertCircle className="h-3 w-3" />
           Error
         </div>
-      )
+      );
     }
 
-    return null
+    return null;
   }
 
   return (
@@ -213,15 +209,11 @@ export function OptimisticClientList({
                     <TableCell>
                       <div>
                         <div className="font-medium">{client.contactName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {client.contactEmail}
-                        </div>
+                        <div className="text-sm text-muted-foreground">{client.contactEmail}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {getServiceTierLabel(client.serviceTier)}
-                      </Badge>
+                      <Badge variant="outline">{getServiceTierLabel(client.serviceTier)}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(client.status)}>
@@ -308,8 +300,8 @@ export function OptimisticClientList({
             <AlertDialogTitle>Delete Client</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{' '}
-              <span className="font-semibold">{clientToDelete?.companyName}</span>?
-              This will set the client status to inactive. This action can be reversed later.
+              <span className="font-semibold">{clientToDelete?.companyName}</span>? This will set
+              the client status to inactive. This action can be reversed later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -324,5 +316,5 @@ export function OptimisticClientList({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

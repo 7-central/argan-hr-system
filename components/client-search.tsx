@@ -1,51 +1,57 @@
-'use client'
+'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useState, useTransition } from 'react'
-import { Input } from "@/components/ui/input"
-import { Search, Loader2 } from "lucide-react"
+import { useCallback, useEffect, useState, useTransition } from 'react';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+
+import { Search, Loader2 } from 'lucide-react';
+
+import { Input } from '@/components/ui/input';
 
 interface ClientSearchProps {
-  placeholder?: string
-  className?: string
+  placeholder?: string;
+  className?: string;
 }
 
 export function ClientSearch({
-  placeholder = "Search clients by name, email, or contact...",
-  className
+  placeholder = 'Search clients by name, email, or contact...',
+  className,
 }: ClientSearchProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
-  const [isPending, startTransition] = useTransition()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [isPending, startTransition] = useTransition();
 
   // Debounced search function with transition
-  const updateSearch = useCallback((value: string) => {
-    const params = new URLSearchParams(searchParams.toString())
+  const updateSearch = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
 
-    if (value) {
-      params.set('search', value)
-    } else {
-      params.delete('search')
-    }
+      if (value) {
+        params.set('search', value);
+      } else {
+        params.delete('search');
+      }
 
-    // Reset to first page when searching
-    params.set('page', '1')
+      // Reset to first page when searching
+      params.set('page', '1');
 
-    // Use startTransition to show loading state
-    startTransition(() => {
-      router.push(`/admin/clients?${params.toString()}`)
-    })
-  }, [router, searchParams])
+      // Use startTransition to show loading state
+      startTransition(() => {
+        router.push(`/admin/clients?${params.toString()}`);
+      });
+    },
+    [router, searchParams]
+  );
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-      updateSearch(searchTerm)
-    }, 300)
+      updateSearch(searchTerm);
+    }, 300);
 
-    return () => clearTimeout(timer)
-  }, [searchTerm, updateSearch])
+    return () => clearTimeout(timer);
+  }, [searchTerm, updateSearch]);
 
   return (
     <div className={`relative ${className || ''}`}>
@@ -62,5 +68,5 @@ export function ClientSearch({
         disabled={isPending}
       />
     </div>
-  )
+  );
 }

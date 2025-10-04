@@ -1,17 +1,19 @@
-'use client'
+'use client';
 
-import { useRouter } from 'next/navigation'
-import { OptimisticClientList } from './optimistic-client-list'
-import type { Client } from '@prisma/client'
+import { useRouter } from 'next/navigation';
+
+import { OptimisticClientList } from './optimistic-client-list';
+
+import type { Client } from '@prisma/client';
 
 /**
  * Props for the ClientPageWrapper component
  */
 export interface ClientPageWrapperProps {
   /** Initial client data from server */
-  clients: Client[]
+  clients: Client[];
   /** Current search term */
-  search?: string
+  search?: string;
 }
 
 /**
@@ -22,23 +24,23 @@ export interface ClientPageWrapperProps {
  * and the client-side optimistic updates functionality
  */
 export function ClientPageWrapper({ clients, search }: ClientPageWrapperProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   /**
    * Handle client edit navigation
    * Navigate to edit page for the selected client
    */
   const handleEdit = (client: Client) => {
-    router.push(`/admin/clients/${client.id}/edit`)
-  }
+    router.push(`/admin/clients/${client.id}/edit`);
+  };
 
   /**
    * Handle client view navigation
    * Navigate to detail view for the selected client
    */
   const handleView = (client: Client) => {
-    router.push(`/admin/clients/${client.id}`)
-  }
+    router.push(`/admin/clients/${client.id}`);
+  };
 
   return (
     <OptimisticClientList
@@ -47,5 +49,5 @@ export function ClientPageWrapper({ clients, search }: ClientPageWrapperProps) {
       onEdit={handleEdit}
       onView={handleView}
     />
-  )
+  );
 }

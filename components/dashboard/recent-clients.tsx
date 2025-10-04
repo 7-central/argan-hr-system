@@ -1,12 +1,14 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { dashboardService } from "@/lib/business/services"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { getRecentClients } from '@/app/admin/(protected)/actions';
+
 
 /**
  * Recent clients component that fetches and displays the latest clients
  * Can be wrapped in Suspense for granular loading states
  */
 export async function RecentClients() {
-  const recentClients = await dashboardService.getRecentClients(3)
+  const recentClients = await getRecentClients(3);
 
   return (
     <Card className="col-span-full lg:col-span-4">
@@ -19,21 +21,22 @@ export async function RecentClients() {
             recentClients.map((client, index) => (
               <div key={index} className="flex items-center">
                 <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {client.companyName}
-                  </p>
+                  <p className="text-sm font-medium leading-none">{client.companyName}</p>
                   <p className="text-sm text-muted-foreground">
-                    {client.contactEmail} • {
-                      client.serviceTier === 'TIER_1' ? 'Tier 1' :
-                      client.serviceTier === 'DOC_ONLY' ? 'Doc Only' :
-                      'Ad-hoc'
-                    }
+                    {client.contactEmail} •{' '}
+                    {client.serviceTier === 'TIER_1'
+                      ? 'Tier 1'
+                      : client.serviceTier === 'DOC_ONLY'
+                        ? 'Doc Only'
+                        : 'Ad-hoc'}
                   </p>
                 </div>
                 <div className="ml-auto font-medium">
-                  {client.status === 'ACTIVE' ? 'Active' :
-                   client.status === 'INACTIVE' ? 'Inactive' :
-                   'Pending'}
+                  {client.status === 'ACTIVE'
+                    ? 'Active'
+                    : client.status === 'INACTIVE'
+                      ? 'Inactive'
+                      : 'Pending'}
                 </div>
               </div>
             ))
@@ -45,5 +48,5 @@ export async function RecentClients() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
