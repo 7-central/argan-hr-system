@@ -5,7 +5,7 @@
  * Handles login and logout operations
  */
 
-import { redirect } from 'next/navigation';
+import { redirect, isRedirectError } from 'next/navigation';
 
 import { authService } from '@/lib/services/business/auth.service';
 import {
@@ -77,6 +77,11 @@ export async function loginAction(formData: FormData) {
     // Redirect to dashboard
     redirect('/admin');
   } catch (error) {
+    // Re-throw redirect errors - they're not actual errors
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error('Login error:', error);
     return {
       success: false,
@@ -94,6 +99,11 @@ export async function logoutAction() {
     await clearAdminSession();
     redirect('/admin/login');
   } catch (error) {
+    // Re-throw redirect errors - they're not actual errors
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error('Logout error:', error);
     return {
       success: false,
