@@ -1,67 +1,46 @@
 /**
- * Health check endpoint
- * Infrastructure endpoint - no business logic or middleware
- * Used for monitoring system health in production
+ * Health Check Endpoint
+ * Public API endpoint for monitoring system health
+ *
+ * Usage:
+ * - Load balancers: Check if service is available
+ * - Monitoring tools: Uptime monitoring (Pingdom, UptimeRobot, etc.)
+ * - Kubernetes: Readiness and liveness probes
+ * - Debugging: Quick system status overview
+ *
+ * Returns:
+ * - 200: System is healthy or degraded (still operational)
+ * - 503: System is unhealthy (service unavailable)
  */
 
-import { performHealthCheck } from '@/lib/system/health'
-import { logger } from '@/lib/system/logger'
+import { NextResponse } from 'next/server';
+
+import { performHealthCheck } from '@/lib/utils/system';
 
 /**
  * GET /api/health
- * Returns system health status
+ * Comprehensive health check with all system components
  */
-export async function GET(): Promise<Response> {
+export async function GET() {
   try {
-    const health = await performHealthCheck()
+    const health = await performHealthCheck();
 
-    // Determine HTTP status code based on health
-    const statusCode =
-      health.status === 'healthy' ? 200 :
-      health.status === 'degraded' ? 200 :  // Still return 200 for degraded
-      503  // Service unavailable for unhealthy
+    // Determine HTTP status code based on health status
+    // - healthy: 200 OK
+    // - degraded: 200 OK (still operational, but with issues)
+    // - unhealthy: 503 Service Unavailable
+    const statusCode = health.status === 'unhealthy' ? 503 : 200;
 
-    // Log unhealthy status
-    if (health.status === 'unhealthy') {
-      logger.warn('Health check returned unhealthy status', health)
-    }
-
-    return Response.json(health, {
-      status: statusCode,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Content-Type': 'application/json'
-      }
-    })
+    return NextResponse.json(health, { status: statusCode });
   } catch (error) {
-    // Log the error
-    logger.error('Health check endpoint failed', error)
-
-    // Return unhealthy status
-    return Response.json(
+    // If health check itself fails, return 503
+    return NextResponse.json(
       {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        version: process.env.npm_package_version || '2.0.0',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        checks: {
-          database: {
-            status: 'unhealthy',
-            message: 'Health check failed'
-          },
-          configuration: {
-            status: 'unhealthy',
-            message: 'Health check failed'
-          }
-        }
+        error: error instanceof Error ? error.message : 'Health check failed',
       },
-      {
-        status: 503,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Content-Type': 'application/json'
-        }
-      }
-    )
+      { status: 503 }
+    );
   }
 }

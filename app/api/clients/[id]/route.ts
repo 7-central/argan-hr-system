@@ -1,10 +1,11 @@
 // Client-specific API endpoints
-// Refactored to use ClientService and middleware composition
+// Refactored to use ClientService and middleware
 
-import { NextResponse } from 'next/server'
-import { clientService } from '@/lib/business/services'
-import { businessApiStack } from '@/lib/middleware/compositions'
-import type { AuthenticatedRequest } from '@/lib/middleware/auth'
+import { withAuth, type AuthenticatedRequest } from '@/lib/middleware/withAuth';
+import { withErrorHandling } from '@/lib/middleware/withErrorHandling';
+import { withRequestLogging } from '@/lib/middleware/withRequestLogging';
+import { clientService } from '@/lib/services/business/client.service';
+import { ApiResponseBuilder, getRequestId } from '@/lib/utils/system/response';
 
 /**
  * GET /api/clients/[id] - Get a specific client by ID
@@ -13,16 +14,13 @@ async function getClientHandler(
   request: AuthenticatedRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  // adminSession available but not used in this handler
-  const { id } = await context.params
+  const requestId = getRequestId(request);
+  const { id } = await context.params;
 
   // Use ClientService to get client
-  const client = await clientService.getClientById(id)
+  const client = await clientService.getClientById(id);
 
-  return NextResponse.json({
-    success: true,
-    data: client,
-  })
+  return ApiResponseBuilder.success(client, requestId);
 }
 
 /**
@@ -32,21 +30,14 @@ async function updateClientHandler(
   request: AuthenticatedRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { adminSession } = request
-  const { id } = await context.params
-  const body = await request.json()
+  const requestId = getRequestId(request);
+  const { id } = await context.params;
+  const body = await request.json();
 
   // Use ClientService to update client
-  const client = await clientService.updateClient(
-    id,
-    body,
-    adminSession.adminId
-  )
+  const client = await clientService.updateClient(id, body);
 
-  return NextResponse.json({
-    success: true,
-    data: client,
-  })
+  return ApiResponseBuilder.success(client, requestId);
 }
 
 /**
@@ -56,22 +47,24 @@ async function deleteClientHandler(
   request: AuthenticatedRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { adminSession } = request
-  const { id } = await context.params
+  const requestId = getRequestId(request);
+  const { id } = await context.params;
 
   // Use ClientService to soft delete client
-  const client = await clientService.deleteClient(
-    id,
-    adminSession.adminId
-  )
+  const client = await clientService.deleteClient(id);
 
-  return NextResponse.json({
-    success: true,
-    data: client,
-  })
+  return ApiResponseBuilder.success(client, requestId);
 }
 
-// Apply middleware composition to handlers
-export const GET = businessApiStack(getClientHandler)
-export const PUT = businessApiStack(updateClientHandler)
-export const DELETE = businessApiStack(deleteClientHandler)
+// Apply middleware layers: error handling -> logging -> auth
+type RouteContext = { params: Promise<{ id: string }> };
+
+export const GET = withErrorHandling<RouteContext>()(
+  withRequestLogging<RouteContext>()(withAuth<RouteContext>(getClientHandler))
+);
+export const PUT = withErrorHandling<RouteContext>()(
+  withRequestLogging<RouteContext>()(withAuth<RouteContext>(updateClientHandler))
+);
+export const DELETE = withErrorHandling<RouteContext>()(
+  withRequestLogging<RouteContext>()(withAuth<RouteContext>(deleteClientHandler))
+);

@@ -1,12 +1,13 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -14,26 +15,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+
+import { loginAction } from '@/app/admin/(auth)/login/actions';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
-})
+});
 
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function AdminLoginForm() {
-  const router = useRouter()
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,36 +37,31 @@ export function AdminLoginForm() {
       email: '',
       password: '',
     },
-  })
+  });
 
   async function onSubmit(data: LoginFormValues) {
     try {
-      setIsLoading(true)
-      setError('')
+      setIsLoading(true);
+      setError('');
 
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
+      // Create FormData from the form values
+      const formData = new FormData();
+      formData.append('email', data.email);
+      formData.append('password', data.password);
 
-      const result = await response.json()
+      // Call the Server Action
+      const result = await loginAction(formData);
 
-      if (response.ok && result.success) {
-        // Redirect to admin dashboard
-        router.push('/admin')
-        router.refresh()
-      } else {
-        // Show error message
-        setError(result.error || 'Invalid email or password')
+      // If there's an error, display it
+      if (result && !result.success) {
+        setError(result.error || 'Invalid email or password');
       }
+      // If successful, loginAction handles redirect automatically
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
-      console.error('Login error:', err)
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Login error:', err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -78,9 +69,7 @@ export function AdminLoginForm() {
     <Card className="w-full max-w-sm">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-        <CardDescription>
-          Enter your credentials to access the admin dashboard
-        </CardDescription>
+        <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -122,22 +111,14 @@ export function AdminLoginForm() {
               )}
             />
 
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </div>
-            )}
+            {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</div>}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }

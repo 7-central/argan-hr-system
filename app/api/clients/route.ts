@@ -1,55 +1,56 @@
 // Client API endpoints
-// Refactored to use ClientService and middleware composition
+// Refactored to use ClientService and middleware
 
-import { NextResponse } from 'next/server'
-import { clientService } from '@/lib/business/services'
-import { businessApiStack } from '@/lib/middleware/compositions'
-import type { AuthenticatedRequest } from '@/lib/middleware/auth'
+import { withAuth, type AuthenticatedRequest } from '@/lib/middleware/withAuth';
+import { withErrorHandling } from '@/lib/middleware/withErrorHandling';
+import { withRequestLogging } from '@/lib/middleware/withRequestLogging';
+import { clientService } from '@/lib/services/business/client.service';
+import { ApiResponseBuilder, getRequestId } from '@/lib/utils/system/response';
 
 /**
  * GET /api/clients - List clients with search and pagination
  */
 async function getClientsHandler(request: AuthenticatedRequest) {
-  // adminSession available but not used in this handler
+  const requestId = getRequestId(request);
 
   // Extract query parameters
-  const { searchParams } = new URL(request.url)
-  const page = Number(searchParams.get('page')) || 1
-  const limit = Number(searchParams.get('limit')) || 25
-  const search = searchParams.get('search') || undefined
+  const { searchParams } = new URL(request.url);
+  const page = Number(searchParams.get('page')) || 1;
+  const limit = Number(searchParams.get('limit')) || 25;
+  const search = searchParams.get('search') || undefined;
 
   // Use ClientService to get clients
   const result = await clientService.getClients({
     page,
     limit,
-    search
-  })
+    search,
+  });
 
-  return NextResponse.json({
-    success: true,
-    data: result,
-  })
+  return ApiResponseBuilder.paginated(
+    result.clients,
+    {
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      totalCount: result.pagination.totalCount,
+      totalPages: result.pagination.totalPages,
+    },
+    requestId
+  );
 }
 
 /**
  * POST /api/clients - Create a new client
  */
 async function createClientHandler(request: AuthenticatedRequest) {
-  const { adminSession } = request
-  const body = await request.json()
+  const requestId = getRequestId(request);
+  const body = await request.json();
 
   // Use ClientService to create client
-  const client = await clientService.createClient({
-    ...body,
-    createdBy: adminSession.adminId,
-  })
+  const client = await clientService.createClient(body);
 
-  return NextResponse.json({
-    success: true,
-    data: client,
-  }, { status: 201 })
+  return ApiResponseBuilder.success(client, requestId, 201);
 }
 
-// Apply middleware composition to handlers
-export const GET = businessApiStack(getClientsHandler)
-export const POST = businessApiStack(createClientHandler)
+// Apply middleware layers: error handling -> logging -> auth
+export const GET = withErrorHandling()(withRequestLogging()(withAuth(getClientsHandler)));
+export const POST = withErrorHandling()(withRequestLogging()(withAuth(createClientHandler)));
