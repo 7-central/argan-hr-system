@@ -13,7 +13,7 @@ export async function RecentClients() {
   return (
     <Card className="col-span-full lg:col-span-4">
       <CardHeader>
-        <CardTitle>Recent Clients</CardTitle>
+        <CardTitle>Placeholder Widget</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-8">

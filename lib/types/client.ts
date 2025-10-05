@@ -28,6 +28,15 @@ export interface CreateClientDto {
   contactName: string;
   contactEmail: string;
   contactPhone?: string;
+  contactRole?: string;
+  secondaryContactName?: string;
+  secondaryContactEmail?: string;
+  secondaryContactPhone?: string;
+  secondaryContactRole?: string;
+  invoiceContactName?: string;
+  invoiceContactEmail?: string;
+  invoiceContactPhone?: string;
+  invoiceContactRole?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -36,6 +45,10 @@ export interface CreateClientDto {
   contractStartDate?: Date;
   contractRenewalDate?: Date;
   status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  externalAudit?: boolean;
+  auditedBy?: string;
+  auditInterval?: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
+  nextAuditDate?: Date;
 }
 
 export interface UpdateClientDto {
@@ -47,6 +60,15 @@ export interface UpdateClientDto {
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactRole?: string;
+  secondaryContactName?: string;
+  secondaryContactEmail?: string;
+  secondaryContactPhone?: string;
+  secondaryContactRole?: string;
+  invoiceContactName?: string;
+  invoiceContactEmail?: string;
+  invoiceContactPhone?: string;
+  invoiceContactRole?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -55,6 +77,10 @@ export interface UpdateClientDto {
   contractStartDate?: Date;
   contractRenewalDate?: Date;
   status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  externalAudit?: boolean;
+  auditedBy?: string;
+  auditInterval?: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
+  nextAuditDate?: Date;
 }
 
 export interface PaginatedResponse<T> {

@@ -1,5 +1,5 @@
 import { ContactType } from '@prisma/client';
-import { Building2, Mail, BadgePoundSterling, SquarePen } from 'lucide-react';
+import { Building2, Mail, BadgePoundSterling, SquarePen, ShieldCheck } from 'lucide-react';
 
 import { ContactTabButtons, ContactDisplay } from '@/components/clients/contact-tabs';
 import { ContactTabsProvider } from '@/components/clients/contact-tabs-provider';
@@ -15,6 +15,13 @@ interface Contact {
   type: ContactType;
 }
 
+interface Audit {
+  id: number;
+  auditedBy: string;
+  interval: string;
+  nextAuditDate: string;
+}
+
 interface Client {
   id: number;
   companyName: string;
@@ -28,13 +35,42 @@ interface Client {
   city: string | null;
   postcode: string | null;
   country: string | null;
+  externalAudit: boolean;
   contacts: Contact[];
+  audits: Audit[];
 }
 
 interface ClientInfoContentProps {
   client: Client;
   getServiceTierLabel: (tier: string) => string;
 }
+
+// Helper function for audit interval labels (presentation logic)
+const getAuditIntervalLabel = (interval: string): string => {
+  switch (interval) {
+    case 'QUARTERLY':
+      return 'Quarterly';
+    case 'ANNUALLY':
+      return 'Annually';
+    case 'TWO_YEARS':
+      return 'Every 2 Years';
+    case 'THREE_YEARS':
+      return 'Every 3 Years';
+    case 'FIVE_YEARS':
+      return 'Every 5 Years';
+    default:
+      return interval;
+  }
+};
+
+// Helper function for date formatting (presentation logic)
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+};
 
 export function ClientInfoContent({ client, getServiceTierLabel }: ClientInfoContentProps) {
   return (
@@ -62,19 +98,13 @@ export function ClientInfoContent({ client, getServiceTierLabel }: ClientInfoCon
                   <p className="text-sm font-medium text-muted-foreground">Company Name</p>
                   <p className="text-lg">{client.companyName}</p>
                 </div>
-                {client.businessId && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Business ID</p>
-                    <p className="text-lg">{client.businessId}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Business ID</p>
+                  <p className="text-lg">{client.businessId || '-'}</p>
+                </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Sector</p>
                   <p className="text-lg">{client.sector || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <p className="text-lg">{client.status.charAt(0) + client.status.slice(1).toLowerCase()}</p>
                 </div>
               </div>
             </div>
@@ -97,6 +127,10 @@ export function ClientInfoContent({ client, getServiceTierLabel }: ClientInfoCon
                       ? `£${Number(client.monthlyRetainer).toFixed(2)}`
                       : '-'}
                   </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  <p className="text-lg">{client.status.charAt(0) + client.status.slice(1).toLowerCase()}</p>
                 </div>
               </div>
             </div>
@@ -170,6 +204,69 @@ export function ClientInfoContent({ client, getServiceTierLabel }: ClientInfoCon
               <p className="text-sm font-medium text-muted-foreground">Country</p>
               <p className="text-lg">{client.country || '-'}</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* External Auditing - Full Width */}
+      <Card className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 h-8 w-8 hover:text-green-600 transition-colors"
+          disabled
+        >
+          <SquarePen className="h-4 w-4" />
+        </Button>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" />
+            External Auditing
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* External Audit Status */}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">External Audit</p>
+              <p className="text-lg">{client.externalAudit ? 'Yes' : 'No'}</p>
+            </div>
+
+            {/* Show audit details if externally audited */}
+            {client.externalAudit && (
+              <>
+                {client.audits.length > 0 ? (
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold text-muted-foreground">Audit Details</p>
+                    {client.audits.map((audit) => (
+                      <div
+                        key={audit.id}
+                        className="border rounded-lg p-4 bg-muted/50"
+                      >
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Audited By</p>
+                            <p className="text-lg mt-1">{audit.auditedBy}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Audit Interval</p>
+                            <p className="text-lg mt-1">{getAuditIntervalLabel(audit.interval)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Next Audit Date</p>
+                            <p className="text-lg mt-1">{formatDate(audit.nextAuditDate)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground py-2">
+                    No audit records found. Please add audit details.
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

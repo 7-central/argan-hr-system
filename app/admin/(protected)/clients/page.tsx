@@ -1,5 +1,6 @@
-import { Plus } from 'lucide-react';
+import Link from 'next/link';
 
+import { Plus } from 'lucide-react';
 
 import { ClientSearch } from '@/components/client-search';
 import { ClientPageWrapper } from '@/components/clients/client-page-wrapper';
@@ -56,10 +57,12 @@ export default async function ClientsPage({
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Clients</h1>
-          <Button disabled>
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Client (Coming Soon)
-          </Button>
+          <Link href="/admin/clients/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Client
+            </Button>
+          </Link>
         </div>
 
         {/* Search Bar */}

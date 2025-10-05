@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/server-actions/with-auth';
 import { clientService } from '@/lib/services/business/client.service';
 
 import type {
+  Client,
   CreateClientDto,
   GetClientsParams,
   UpdateClientDto,
@@ -14,6 +15,14 @@ import type {
  * Client Management Server Actions
  * All actions require authentication via withAuth wrapper
  */
+
+/**
+ * Get unique sectors from the database
+ * Used to populate the sector dropdown with existing values
+ */
+export async function getUniqueSectors(): Promise<string[]> {
+  return clientService.getUniqueSectors();
+}
 
 // Get clients with pagination and filtering
 export const getClients = withAuth(
@@ -33,11 +42,45 @@ export const getClients = withAuth(
   }
 );
 
-// TODO: Implement create client action
-export const createClient = withAuth(async (_session, _data: CreateClientDto) => {
-  // Placeholder for create client logic
-  throw new Error('Not implemented yet');
-});
+/**
+ * Create new client with proper error handling
+ * Returns result object (not throwing errors) following architectural patterns
+ */
+export const createClient = withAuth(
+  async (
+    _session,
+    data: CreateClientDto
+  ): Promise<{ success: boolean; data?: Client; error?: string }> => {
+    try {
+      const client = await clientService.createClient(data);
+
+      // Convert Decimal to number for client serialization
+      const serializedClient = {
+        ...client,
+        monthlyRetainer: client.monthlyRetainer ? Number(client.monthlyRetainer) : null,
+      };
+
+      return {
+        success: true,
+        data: serializedClient,
+      };
+    } catch (error) {
+      // Handle business errors with user-friendly messages
+      if (error instanceof Error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      // Handle unexpected errors
+      return {
+        success: false,
+        error: 'An unexpected error occurred while creating the client',
+      };
+    }
+  }
+);
 
 // TODO: Implement update client action
 export const updateClient = withAuth(async (_session, _id: string, _data: UpdateClientDto) => {

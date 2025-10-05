@@ -63,6 +63,12 @@ model Client {
   // Status
   status              ClientStatus  @default(ACTIVE)
 
+  // Onboarding checklist
+  welcomeEmailSent    Boolean       @default(false) @map("welcome_email_sent")
+
+  // Audit
+  externalAudit       Boolean       @default(false) @map("external_audit")
+
   // Metadata
   createdBy           String?       @map("created_by")
   createdByAdmin      Admin?        @relation("ClientCreator", fields: [createdBy], references: [id])
@@ -76,6 +82,7 @@ model Client {
   handbooks           Handbook[]
   internals           Internal[]
   archives            Archive[]
+  audits              ClientAudit[]
 
   @@index([status])
   @@index([serviceTier])
@@ -126,6 +133,13 @@ model Contract {
   contractUploaded              Boolean         @default(false) @map("contract_uploaded")
   contractAddedToXero           Boolean         @default(false) @map("contract_added_to_xero")
 
+  // Onboarding checklist
+  contractSentToClient          Boolean         @default(false) @map("contract_sent_to_client")
+  dpaSignedGdpr                 Boolean         @default(false) @map("dpa_signed_gdpr")
+  firstInvoiceSent              Boolean         @default(false) @map("first_invoice_sent")
+  firstPaymentMade              Boolean         @default(false) @map("first_payment_made")
+  paymentTermsAgreed            Boolean         @default(false) @map("payment_terms_agreed")
+
   // Agreed Service (In Scope) - Inclusive hours
   hrAdminInclusiveHours         Decimal?        @map("hr_admin_inclusive_hours") @db.Decimal(5, 2)
   employmentLawInclusiveHours   Decimal?        @map("employment_law_inclusive_hours") @db.Decimal(5, 2)
@@ -134,10 +148,14 @@ model Contract {
   // Extra Rates (Out of Scope / Ad-hoc)
   hrAdminRate                   Decimal?        @map("hr_admin_rate") @db.Decimal(10, 2)
   hrAdminRateUnit               RateUnit?       @map("hr_admin_rate_unit")
+  hrAdminRateNotNeeded          Boolean         @default(false) @map("hr_admin_rate_not_needed")
   employmentLawRate             Decimal?        @map("employment_law_rate") @db.Decimal(10, 2)
   employmentLawRateUnit         RateUnit?       @map("employment_law_rate_unit")
+  employmentLawRateNotNeeded    Boolean         @default(false) @map("employment_law_rate_not_needed")
   mileageRate                   Decimal?        @map("mileage_rate") @db.Decimal(10, 2)
+  mileageRateNotNeeded          Boolean         @default(false) @map("mileage_rate_not_needed")
   overnightRate                 Decimal?        @map("overnight_rate") @db.Decimal(10, 2)
+  overnightRateNotNeeded        Boolean         @default(false) @map("overnight_rate_not_needed")
 
   // Metadata
   createdAt                     DateTime        @default(now()) @map("created_at")
@@ -224,6 +242,28 @@ model Archive {
   @@map("archives")
 }
 
+// Client audit - external audit tracking (one client can have multiple auditors)
+model ClientAudit {
+  id            Int           @id @default(autoincrement())
+  clientId      Int           @map("client_id")
+
+  // Auditor details
+  auditedBy     String        @map("audited_by")
+  interval      AuditInterval
+  nextAuditDate DateTime      @map("next_audit_date") @db.Date
+
+  // Metadata
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([nextAuditDate])
+  @@map("client_audits")
+}
+
 // Enums
 enum AdminRole {
   SUPER_ADMIN
@@ -263,4 +303,12 @@ enum PaymentMethod {
 enum RateUnit {
   HOURLY  @map("hourly")
   DAILY   @map("daily")
+}
+
+enum AuditInterval {
+  QUARTERLY    @map("quarterly")
+  ANNUALLY     @map("annually")
+  TWO_YEARS    @map("two_years")
+  THREE_YEARS  @map("three_years")
+  FIVE_YEARS   @map("five_years")
 }
