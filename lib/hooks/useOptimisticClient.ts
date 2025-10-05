@@ -63,6 +63,8 @@ function optimisticClientReducer(
         country: clientData.country || null,
         contractStartDate: clientData.contractStartDate || null,
         contractRenewalDate: clientData.contractRenewalDate || null,
+        welcomeEmailSent: false,
+        externalAudit: false,
         _optimistic: true,
         _pending: true,
         _error: null,

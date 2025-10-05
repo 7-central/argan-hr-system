@@ -56,9 +56,17 @@ export default async function ClientViewPage({ params }: ClientViewPageProps) {
       hrAdminInclusiveHours: contract.hrAdminInclusiveHours ? Number(contract.hrAdminInclusiveHours) : null,
       employmentLawInclusiveHours: contract.employmentLawInclusiveHours ? Number(contract.employmentLawInclusiveHours) : null,
       hrAdminRate: contract.hrAdminRate ? Number(contract.hrAdminRate) : null,
+      hrAdminRateNotNeeded: contract.hrAdminRateNotNeeded,
       employmentLawRate: contract.employmentLawRate ? Number(contract.employmentLawRate) : null,
+      employmentLawRateNotNeeded: contract.employmentLawRateNotNeeded,
       mileageRate: contract.mileageRate ? Number(contract.mileageRate) : null,
+      mileageRateNotNeeded: contract.mileageRateNotNeeded,
       overnightRate: contract.overnightRate ? Number(contract.overnightRate) : null,
+      overnightRateNotNeeded: contract.overnightRateNotNeeded,
+    })),
+    audits: clientData.audits.map((audit) => ({
+      ...audit,
+      nextAuditDate: audit.nextAuditDate.toISOString(),
     })),
   };
 

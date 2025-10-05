@@ -23,6 +23,34 @@ export class ClientService {
   constructor(private readonly db: PrismaClient) {}
 
   /**
+   * Get unique sectors from database
+   * Used to populate sector dropdown
+   */
+  async getUniqueSectors(): Promise<string[]> {
+    try {
+      const sectors = await this.db.client.findMany({
+        where: {
+          sector: {
+            not: null,
+          },
+        },
+        select: {
+          sector: true,
+        },
+        distinct: ['sector'],
+        orderBy: {
+          sector: 'asc',
+        },
+      });
+
+      return sectors.map((s) => s.sector).filter((s): s is string => s !== null);
+    } catch (error) {
+      console.error('Error fetching unique sectors:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get clients with search and pagination
    */
   async getClients(params: GetClientsParams): Promise<ClientResponse> {
@@ -77,6 +105,8 @@ export class ClientService {
           contractStartDate: true,
           contractRenewalDate: true,
           status: true,
+          welcomeEmailSent: true,
+          externalAudit: true,
           createdBy: true,
           createdAt: true,
           updatedAt: true,
@@ -126,6 +156,11 @@ export class ClientService {
           },
           take: 1, // Get most recent active contract
         },
+        audits: {
+          orderBy: {
+            nextAuditDate: 'asc', // Show soonest audits first
+          },
+        },
       },
     });
 
@@ -164,26 +199,84 @@ export class ClientService {
     // Check for duplicate email
     await this.checkDuplicateEmail(data.contactEmail);
 
-    // Create client
-    const client = await this.db.client.create({
-      data: {
-        companyName: data.companyName,
-        businessId: data.businessId || null,
-        sector: data.sector || null,
-        serviceTier: data.serviceTier,
-        monthlyRetainer: data.monthlyRetainer || null,
-        contactName: data.contactName,
-        contactEmail: data.contactEmail,
-        contactPhone: data.contactPhone || null,
-        addressLine1: data.addressLine1 || null,
-        addressLine2: data.addressLine2 || null,
-        city: data.city || null,
-        postcode: data.postcode || null,
-        country: data.country || null,
-        contractStartDate: data.contractStartDate || null,
-        contractRenewalDate: data.contractRenewalDate || null,
-        status: data.status || 'ACTIVE',
-      },
+    // Create client and contacts in a transaction
+    const client = await this.db.$transaction(async (tx) => {
+      // Create the client
+      const newClient = await tx.client.create({
+        data: {
+          companyName: data.companyName,
+          businessId: data.businessId || null,
+          sector: data.sector || null,
+          serviceTier: data.serviceTier,
+          monthlyRetainer: data.monthlyRetainer || null,
+          contactName: data.contactName,
+          contactEmail: data.contactEmail,
+          contactPhone: data.contactPhone || null,
+          addressLine1: data.addressLine1 || null,
+          addressLine2: data.addressLine2 || null,
+          city: data.city || null,
+          postcode: data.postcode || null,
+          country: data.country || null,
+          contractStartDate: data.contractStartDate || null,
+          contractRenewalDate: data.contractRenewalDate || null,
+          status: data.status || 'ACTIVE',
+          externalAudit: data.externalAudit || false,
+        },
+      });
+
+      // Create primary contact
+      await tx.clientContact.create({
+        data: {
+          clientId: newClient.id,
+          name: data.contactName,
+          email: data.contactEmail,
+          phone: data.contactPhone || null,
+          role: data.contactRole || null,
+          type: 'PRIMARY',
+        },
+      });
+
+      // Create secondary contact if provided
+      if (data.secondaryContactName && data.secondaryContactEmail) {
+        await tx.clientContact.create({
+          data: {
+            clientId: newClient.id,
+            name: data.secondaryContactName,
+            email: data.secondaryContactEmail,
+            phone: data.secondaryContactPhone || null,
+            role: data.secondaryContactRole || null,
+            type: 'SECONDARY',
+          },
+        });
+      }
+
+      // Create invoice contact if provided
+      if (data.invoiceContactName && data.invoiceContactEmail) {
+        await tx.clientContact.create({
+          data: {
+            clientId: newClient.id,
+            name: data.invoiceContactName,
+            email: data.invoiceContactEmail,
+            phone: data.invoiceContactPhone || null,
+            role: data.invoiceContactRole || null,
+            type: 'INVOICE',
+          },
+        });
+      }
+
+      // Create client audit record if external audit is enabled
+      if (data.externalAudit && data.auditedBy && data.auditInterval && data.nextAuditDate) {
+        await tx.clientAudit.create({
+          data: {
+            clientId: newClient.id,
+            auditedBy: data.auditedBy,
+            interval: data.auditInterval,
+            nextAuditDate: data.nextAuditDate,
+          },
+        });
+      }
+
+      return newClient;
     });
 
     return client;

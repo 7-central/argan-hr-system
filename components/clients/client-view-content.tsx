@@ -32,10 +32,21 @@ interface Contract {
   inclusiveServices: string[];
   hrAdminRate: number | null;
   hrAdminRateUnit: string | null;
+  hrAdminRateNotNeeded: boolean;
   employmentLawRate: number | null;
   employmentLawRateUnit: string | null;
+  employmentLawRateNotNeeded: boolean;
   mileageRate: number | null;
+  mileageRateNotNeeded: boolean;
   overnightRate: number | null;
+  overnightRateNotNeeded: boolean;
+}
+
+interface Audit {
+  id: number;
+  auditedBy: string;
+  interval: string;
+  nextAuditDate: string;
 }
 
 interface Client {
@@ -51,8 +62,10 @@ interface Client {
   city: string | null;
   postcode: string | null;
   country: string | null;
+  externalAudit: boolean;
   contacts: Contact[];
   contracts: Contract[];
+  audits: Audit[];
 }
 
 interface ClientViewContentProps {
@@ -94,7 +107,11 @@ export function ClientViewContent({ client }: ClientViewContentProps) {
         <ClientInfoContent client={client} getServiceTierLabel={getServiceTierLabel} />
       )}
       {activeTab === 'contract-info' && (
-        <ContractInfoContent contract={activeContract} formatDate={formatDate} />
+        <ContractInfoContent
+          contract={activeContract}
+          clientId={client.id}
+          formatDate={formatDate}
+        />
       )}
     </>
   );

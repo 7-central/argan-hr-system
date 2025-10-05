@@ -2,15 +2,13 @@ import { Suspense } from 'react';
 
 import Link from 'next/link';
 
-import { Plus, Download, FileSpreadsheet, TrendingUp, Shield, Briefcase, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Shield, Briefcase, AlertTriangle } from 'lucide-react';
 
 import { validateSession } from '@/lib/utils/system/session';
 
 import {
   DashboardMetrics,
-  RecentClients,
   MetricsSkeleton,
-  RecentClientsSkeleton,
 } from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,9 +38,11 @@ export default async function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
-            <Button>Add New Client</Button>
-            <Button>Add Case</Button>
-            <Button>Record Interaction</Button>
+            <Link href="/admin/clients/new" className="w-full">
+              <Button className="w-full">Add New Client</Button>
+            </Link>
+            <Button disabled>Add Case</Button>
+            <Button disabled>Record Interaction</Button>
           </div>
         </CardContent>
       </Card>
@@ -101,35 +101,23 @@ export default async function AdminDashboard() {
 
       {/* Main Content Area */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Recent Clients with Suspense */}
-        <Suspense fallback={<RecentClientsSkeleton />}>
-          <RecentClients />
-        </Suspense>
+        {/* Recent Clients Placeholder */}
+        <Card className="col-span-full lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Recent Clients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Coming soon</p>
+          </CardContent>
+        </Card>
 
-        {/* Quick Actions - Static content, no loading needed */}
+        {/* Quick Actions Placeholder */}
         <Card className="col-span-full lg:col-span-3">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2">
-            <Button disabled className="w-full justify-start">
-              <Plus className="mr-2 h-4 w-4" />
-              Add New Client (Coming Soon)
-            </Button>
-            <Link href="/admin/clients" className="w-full">
-              <Button variant="outline" className="w-full justify-start">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                View All Clients
-              </Button>
-            </Link>
-            <Button variant="outline" className="w-full justify-start">
-              <Download className="mr-2 h-4 w-4" />
-              Export Client List
-            </Button>
-            <div className="mt-4 rounded-lg bg-muted p-3">
-              <p className="text-sm font-medium">System Status</p>
-              <p className="text-xs text-muted-foreground">All systems operational</p>
-            </div>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Coming soon</p>
           </CardContent>
         </Card>
       </div>

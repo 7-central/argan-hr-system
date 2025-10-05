@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react';
 
-import { Edit, Trash2, Eye, MoreHorizontal, Loader2, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, Trash2, Eye, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react';
 
 import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient';
 
+import { OnboardingModal } from '@/components/clients/onboarding-modal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -20,12 +21,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -73,6 +68,7 @@ export function OptimisticClientList({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<'companyName' | 'sector' | 'serviceTier' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [onboardingClientId, setOnboardingClientId] = useState<number | null>(null);
 
   // Initialize optimistic client management
   const { optimisticClients: rawOptimisticClients, deleteClientOptimistic } = useOptimisticClient(clients);
@@ -273,7 +269,7 @@ export function OptimisticClientList({
                     {getSortIcon('status')}
                   </button>
                 </TableHead>
-                <TableHead className="w-[70px]">Actions</TableHead>
+                <TableHead className="w-[180px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -312,46 +308,48 @@ export function OptimisticClientList({
                       </Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                            disabled={client._pending || client.status === 'INACTIVE'}
-                          >
-                            <span className="sr-only">Open menu</span>
-                            {client._pending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <MoreHorizontal className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => onView?.(client)}
-                            disabled={client._pending}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onEdit?.(client)}
-                            disabled={client._pending || client.status === 'INACTIVE'}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setClientToDelete(client)}
-                            disabled={client._pending || client.status === 'INACTIVE'}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-green-600 transition-colors"
+                          onClick={() => onView?.(client)}
+                          disabled={client._pending}
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-green-600 transition-colors"
+                          onClick={() => onEdit?.(client)}
+                          disabled={client._pending || client.status === 'INACTIVE'}
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-green-600 transition-colors"
+                          onClick={() => setOnboardingClientId(client.id)}
+                          disabled={client._pending || client.status === 'INACTIVE'}
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                          <span className="sr-only">Onboarding</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-red-600 transition-colors"
+                          onClick={() => setClientToDelete(client)}
+                          disabled={client._pending || client.status === 'INACTIVE'}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -403,6 +401,13 @@ export function OptimisticClientList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        clientId={onboardingClientId}
+        open={!!onboardingClientId}
+        onOpenChange={(open) => !open && setOnboardingClientId(null)}
+      />
     </>
   );
 }
