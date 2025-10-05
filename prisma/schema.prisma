@@ -72,6 +72,10 @@ model Client {
   // Relations
   contacts            ClientContact[]
   contracts           Contract[]
+  policies            Policy[]
+  handbooks           Handbook[]
+  internals           Internal[]
+  archives            Archive[]
 
   @@index([status])
   @@index([serviceTier])
@@ -104,6 +108,7 @@ model ClientContact {
 // Client contracts - service agreements and payment terms
 model Contract {
   id                            Int             @id @default(autoincrement())
+  contractNumber                String          @unique @map("contract_number") // Format: CON-1-001-001
   clientId                      Int             @map("client_id")
 
   // Core contract dates
@@ -112,7 +117,8 @@ model Contract {
   lastPriceIncrease             DateTime?       @map("last_price_increase") @db.Date
 
   // Contract status & payment
-  contractStatus                ContractStatus  @default(ACTIVE) @map("contract_status")
+  status                        ContractStatus  @default(ACTIVE)
+  docUrl                        String?         @map("doc_url")
   paymentMethod                 PaymentMethod   @map("payment_method")
   directDebitSetup              Boolean         @default(false) @map("direct_debit_setup")
   directDebitConfirmed          Boolean         @default(false) @map("direct_debit_confirmed")
@@ -141,8 +147,81 @@ model Contract {
   client                        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
-  @@index([contractStatus])
+  @@index([status])
+  @@index([contractNumber])
   @@map("contracts")
+}
+
+// Client policies - policy documents and tracking
+model Policy {
+  id            Int      @id @default(autoincrement())
+  policyNumber  String   @unique @map("policy_number") // Format: POL-1-001-001
+  clientId      Int      @map("client_id")
+
+  // Metadata
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([policyNumber])
+  @@map("policies")
+}
+
+// Client handbooks - employee handbook documents
+model Handbook {
+  id              Int      @id @default(autoincrement())
+  handbookNumber  String   @unique @map("handbook_number") // Format: HAN-1-001-001
+  clientId        Int      @map("client_id")
+
+  // Metadata
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([handbookNumber])
+  @@map("handbooks")
+}
+
+// Internal documents - internal company documents
+model Internal {
+  id              Int      @id @default(autoincrement())
+  internalNumber  String   @unique @map("internal_number") // Format: INT-1-001-001
+  clientId        Int      @map("client_id")
+
+  // Metadata
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([internalNumber])
+  @@map("internals")
+}
+
+// Archive - archived documents
+model Archive {
+  id             Int      @id @default(autoincrement())
+  archiveNumber  String   @unique @map("archive_number") // Format: ARC-1-001-001
+  clientId       Int      @map("client_id")
+
+  // Metadata
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([archiveNumber])
+  @@map("archives")
 }
 
 // Enums

@@ -20,7 +20,7 @@ interface Contract {
   contractStartDate: string;
   contractRenewalDate: string;
   lastPriceIncrease: string | null;
-  contractStatus: string;
+  status: string;
   paymentMethod: string;
   directDebitSetup: boolean;
   directDebitConfirmed: boolean;
