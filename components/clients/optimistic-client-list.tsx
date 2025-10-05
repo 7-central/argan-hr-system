@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-import { Edit, Trash2, Eye, MoreHorizontal, Loader2, AlertCircle, Clock } from 'lucide-react';
+import { Edit, Trash2, Eye, MoreHorizontal, Loader2, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient';
 
@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/table';
 
 import type { OptimisticClient } from '@/lib/hooks/useOptimisticClient';
-import type { Client } from '@prisma/client';
+import type { Client } from '@/lib/types/client';
 
 /**
  * Props for the OptimisticClientList component
@@ -71,9 +71,54 @@ export function OptimisticClientList({
 }: OptimisticClientListProps) {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<'companyName' | 'sector' | 'serviceTier' | 'status'>('status');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Initialize optimistic client management
-  const { optimisticClients, deleteClientOptimistic } = useOptimisticClient(clients);
+  const { optimisticClients: rawOptimisticClients, deleteClientOptimistic } = useOptimisticClient(clients);
+
+  // Handle column header click for sorting
+  const handleSort = (column: 'companyName' | 'sector' | 'serviceTier' | 'status') => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort the optimistic clients based on current sort settings
+  const optimisticClients = useMemo(() => {
+    return [...rawOptimisticClients].sort((a, b) => {
+      let aVal: string | number = '';
+      let bVal: string | number = '';
+
+      switch (sortColumn) {
+        case 'companyName':
+          aVal = a.companyName.toLowerCase();
+          bVal = b.companyName.toLowerCase();
+          break;
+        case 'sector':
+          aVal = (a.sector || '').toLowerCase();
+          bVal = (b.sector || '').toLowerCase();
+          break;
+        case 'serviceTier':
+          aVal = a.serviceTier;
+          bVal = b.serviceTier;
+          break;
+        case 'status':
+          aVal = a.status;
+          bVal = b.status;
+          break;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [rawOptimisticClients, sortColumn, sortDirection]);
 
   /**
    * Handle optimistic client deletion
@@ -124,6 +169,20 @@ export function OptimisticClientList({
         return 'secondary';
     }
   }
+
+  /**
+   * Render sort icon based on current sort state
+   */
+  const getSortIcon = (column: 'companyName' | 'sector' | 'serviceTier' | 'status') => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4" />
+    );
+  };
 
   /**
    * Get optimistic state indicator
@@ -178,11 +237,42 @@ export function OptimisticClientList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Company</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Service Tier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center hover:text-foreground transition-colors"
+                    onClick={() => handleSort('companyName')}
+                  >
+                    Client
+                    {getSortIcon('companyName')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center hover:text-foreground transition-colors"
+                    onClick={() => handleSort('sector')}
+                  >
+                    Sector
+                    {getSortIcon('sector')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center hover:text-foreground transition-colors"
+                    onClick={() => handleSort('serviceTier')}
+                  >
+                    Service Tier
+                    {getSortIcon('serviceTier')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center hover:text-foreground transition-colors"
+                    onClick={() => handleSort('status')}
+                  >
+                    Status
+                    {getSortIcon('status')}
+                  </button>
+                </TableHead>
                 <TableHead className="w-[70px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -191,10 +281,12 @@ export function OptimisticClientList({
                 optimisticClients.map((client) => (
                   <TableRow
                     key={client.id}
+                    onClick={() => onView?.(client)}
                     className={`
                       ${client._optimistic ? 'bg-muted/30' : ''}
                       ${client.status === 'INACTIVE' ? 'opacity-50' : ''}
                       ${client._pending ? 'animate-pulse' : ''}
+                      cursor-pointer hover:bg-muted/50
                       transition-all duration-200
                     `}
                   >
@@ -206,24 +298,20 @@ export function OptimisticClientList({
                         {getOptimisticIndicator(client)}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{client.contactName}</div>
-                        <div className="text-sm text-muted-foreground">{client.contactEmail}</div>
-                      </div>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {client.sector || '-'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{getServiceTierLabel(client.serviceTier)}</Badge>
+                      <Badge variant="outline" className="w-32 justify-center">
+                        {getServiceTierLabel(client.serviceTier)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(client.status)}>
+                      <Badge variant={getStatusVariant(client.status)} className="w-32 justify-center">
                         {client.status.charAt(0) + client.status.slice(1).toLowerCase()}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {client.createdAt.toLocaleDateString('en-GB')}
-                    </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -269,7 +357,7 @@ export function OptimisticClientList({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     {search ? (
                       <div>
                         <p className="text-lg font-semibold">No clients found</p>

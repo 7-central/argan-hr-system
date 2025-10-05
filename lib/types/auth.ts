@@ -1,7 +1,7 @@
 // Authentication types for Argan HR System
 // Based on document-parser security patterns
 
-import type { AdminRole } from '@prisma/client';
+import type { AdminRole } from './admin';
 
 /**
  * Admin session interface for route handlers

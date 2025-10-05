@@ -23,8 +23,8 @@ export class DuplicateResourceError extends ConflictError {
 /**
  * Error thrown when email already exists
  */
-export class EmailAlreadyExistsError extends DuplicateResourceError {
+export class EmailAlreadyExistsError extends ConflictError {
   constructor(email: string) {
-    super('User', 'email', email);
+    super(`Email already exists. Please use a different email.`, { email });
   }
 }

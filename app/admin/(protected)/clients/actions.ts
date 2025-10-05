@@ -3,25 +3,35 @@
 import { withAuth } from '@/lib/server-actions/with-auth';
 import { clientService } from '@/lib/services/business/client.service';
 
-
 import type {
   CreateClientDto,
   GetClientsParams,
   UpdateClientDto,
-} from '@/lib/services/business/client.service';
+  SerializableClientResponse,
+} from '@/lib/types/client';
 
 /**
  * Client Management Server Actions
  * All actions require authentication via withAuth wrapper
  */
 
-// Re-export types for use in pages/components
-export type { CreateClientDto, UpdateClientDto };
-
 // Get clients with pagination and filtering
-export const getClients = withAuth(async (session, params?: GetClientsParams) => {
-  return await clientService.getClients(params || { page: 1, limit: 25 });
-});
+export const getClients = withAuth(
+  async (session, params?: GetClientsParams): Promise<SerializableClientResponse> => {
+    const result = await clientService.getClients(params || { page: 1, limit: 25 });
+
+    // Convert Decimal fields to number for client component serialization
+    const clients = result.clients.map((client) => ({
+      ...client,
+      monthlyRetainer: client.monthlyRetainer ? Number(client.monthlyRetainer) : null,
+    }));
+
+    return {
+      ...result,
+      clients,
+    };
+  }
+);
 
 // TODO: Implement create client action
 export const createClient = withAuth(async (_session, _data: CreateClientDto) => {
