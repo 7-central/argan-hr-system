@@ -33,7 +33,7 @@ model Admin {
 
 // HR consultancy clients (companies)
 model Client {
-  id                  String        @id @default(uuid())
+  id                  Int           @id @default(autoincrement())
 
   // Business Info
   companyName         String        @map("company_name")
@@ -49,6 +49,13 @@ model Client {
   contactEmail        String        @map("contact_email")
   contactPhone        String?       @map("contact_phone")
 
+  // Address
+  addressLine1        String?       @map("address_line_1")
+  addressLine2        String?       @map("address_line_2")
+  city                String?
+  postcode            String?
+  country             String?       @default("United Kingdom")
+
   // Contract
   contractStartDate   DateTime?     @map("contract_start_date") @db.Date
   contractRenewalDate DateTime?     @map("contract_renewal_date") @db.Date
@@ -62,17 +69,87 @@ model Client {
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
+  // Relations
+  contacts            ClientContact[]
+  contracts           Contract[]
+
   @@index([status])
   @@index([serviceTier])
   @@index([companyName])
   @@map("clients")
 }
 
+// Client contacts (Primary, Secondary, Invoice)
+model ClientContact {
+  id        Int         @id @default(autoincrement())
+  clientId  Int         @map("client_id")
+  type      ContactType
+  name      String
+  email     String
+  phone     String?
+  role      String?     // Required for SECONDARY and INVOICE, null for PRIMARY
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Business rule: Only one contact of each type per client
+  @@unique([clientId, type])
+  @@index([clientId])
+  @@index([type])
+  @@map("client_contacts")
+}
+
+// Client contracts - service agreements and payment terms
+model Contract {
+  id                            Int             @id @default(autoincrement())
+  clientId                      Int             @map("client_id")
+
+  // Core contract dates
+  contractStartDate             DateTime        @map("contract_start_date") @db.Date
+  contractRenewalDate           DateTime        @map("contract_renewal_date") @db.Date
+  lastPriceIncrease             DateTime?       @map("last_price_increase") @db.Date
+
+  // Contract status & payment
+  contractStatus                ContractStatus  @default(ACTIVE) @map("contract_status")
+  paymentMethod                 PaymentMethod   @map("payment_method")
+  directDebitSetup              Boolean         @default(false) @map("direct_debit_setup")
+  directDebitConfirmed          Boolean         @default(false) @map("direct_debit_confirmed")
+  signedContractReceived        Boolean         @default(false) @map("signed_contract_received")
+  contractUploaded              Boolean         @default(false) @map("contract_uploaded")
+  contractAddedToXero           Boolean         @default(false) @map("contract_added_to_xero")
+
+  // Agreed Service (In Scope) - Inclusive hours
+  hrAdminInclusiveHours         Decimal?        @map("hr_admin_inclusive_hours") @db.Decimal(5, 2)
+  employmentLawInclusiveHours   Decimal?        @map("employment_law_inclusive_hours") @db.Decimal(5, 2)
+  inclusiveServices             String[]        @map("inclusive_services") // Multi-select array
+
+  // Extra Rates (Out of Scope / Ad-hoc)
+  hrAdminRate                   Decimal?        @map("hr_admin_rate") @db.Decimal(10, 2)
+  hrAdminRateUnit               RateUnit?       @map("hr_admin_rate_unit")
+  employmentLawRate             Decimal?        @map("employment_law_rate") @db.Decimal(10, 2)
+  employmentLawRateUnit         RateUnit?       @map("employment_law_rate_unit")
+  mileageRate                   Decimal?        @map("mileage_rate") @db.Decimal(10, 2)
+  overnightRate                 Decimal?        @map("overnight_rate") @db.Decimal(10, 2)
+
+  // Metadata
+  createdAt                     DateTime        @default(now()) @map("created_at")
+  updatedAt                     DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  client                        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([contractStatus])
+  @@map("contracts")
+}
+
 // Enums
 enum AdminRole {
   SUPER_ADMIN
   ADMIN
-  VIEWER
+  READ_ONLY
 }
 
 enum ServiceTier {
@@ -85,4 +162,26 @@ enum ClientStatus {
   ACTIVE    @map("active")
   INACTIVE  @map("inactive")
   PENDING   @map("pending")
+}
+
+enum ContactType {
+  PRIMARY
+  SECONDARY
+  INVOICE
+}
+
+enum ContractStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+enum PaymentMethod {
+  DIRECT_DEBIT  @map("direct_debit")
+  INVOICE       @map("invoice")
+}
+
+enum RateUnit {
+  HOURLY  @map("hourly")
+  DAILY   @map("daily")
 }

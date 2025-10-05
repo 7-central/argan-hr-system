@@ -4,8 +4,7 @@ import { useOptimistic, useCallback } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import type { CreateClientDto, UpdateClientDto } from '@/app/admin/(protected)/clients/actions';
-import type { Client } from '@prisma/client';
+import type { Client, CreateClientDto, UpdateClientDto } from '@/lib/types/client';
 
 /**
  * Optimistic state for client operations
@@ -13,8 +12,8 @@ import type { Client } from '@prisma/client';
  */
 export interface OptimisticClientAction {
   type: 'CREATE' | 'UPDATE' | 'DELETE';
-  client: CreateClientDto | UpdateClientDto | { id: string };
-  tempId?: string;
+  client: CreateClientDto | UpdateClientDto | { id: number };
+  tempId?: number;
 }
 
 /**
@@ -43,7 +42,7 @@ function optimisticClientReducer(
     case 'CREATE': {
       const clientData = action.client as CreateClientDto;
       const optimisticClient: OptimisticClient = {
-        id: action.tempId || 'temp-id',
+        id: action.tempId || -1,
         companyName: clientData.companyName || '',
         contactName: clientData.contactName || '',
         contactEmail: clientData.contactEmail || '',
@@ -57,6 +56,11 @@ function optimisticClientReducer(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         monthlyRetainer: clientData.monthlyRetainer as any,
         contactPhone: clientData.contactPhone || null,
+        addressLine1: clientData.addressLine1 || null,
+        addressLine2: clientData.addressLine2 || null,
+        city: clientData.city || null,
+        postcode: clientData.postcode || null,
+        country: clientData.country || null,
         contractStartDate: clientData.contractStartDate || null,
         contractRenewalDate: clientData.contractRenewalDate || null,
         _optimistic: true,
@@ -68,7 +72,7 @@ function optimisticClientReducer(
     }
 
     case 'UPDATE': {
-      const updateData = action.client as UpdateClientDto & { id: string };
+      const updateData = action.client as UpdateClientDto & { id: number };
       return state.map((client) => {
         if (client.id === updateData.id) {
           return {
@@ -86,7 +90,7 @@ function optimisticClientReducer(
     }
 
     case 'DELETE': {
-      const deleteData = action.client as { id: string };
+      const deleteData = action.client as { id: number };
       return state.map((client) => {
         if (client.id === deleteData.id) {
           return {
@@ -168,8 +172,8 @@ export function useOptimisticClient(initialClients: Client[]) {
    */
   const createClientOptimistic = useCallback(
     async (data: CreateClientDto): Promise<OptimisticClientResponse<Client>> => {
-      // Generate temporary ID for optimistic update
-      const tempId = `temp-${Date.now()}`;
+      // Generate temporary ID for optimistic update (negative number to avoid conflicts)
+      const tempId = -Date.now();
 
       // Apply optimistic update immediately
       addOptimistic({
@@ -230,7 +234,7 @@ export function useOptimisticClient(initialClients: Client[]) {
    * @returns Promise with operation result
    */
   const updateClientOptimistic = useCallback(
-    async (id: string, data: UpdateClientDto): Promise<OptimisticClientResponse<Client>> => {
+    async (id: number, data: UpdateClientDto): Promise<OptimisticClientResponse<Client>> => {
       // Apply optimistic update immediately
       addOptimistic({
         type: 'UPDATE',
@@ -284,7 +288,7 @@ export function useOptimisticClient(initialClients: Client[]) {
    * @returns Promise with operation result
    */
   const deleteClientOptimistic = useCallback(
-    async (id: string): Promise<OptimisticClientResponse<Client>> => {
+    async (id: number): Promise<OptimisticClientResponse<Client>> => {
       // Apply optimistic update immediately (soft delete)
       addOptimistic({
         type: 'DELETE',

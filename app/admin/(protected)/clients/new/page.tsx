@@ -19,9 +19,8 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 
-import type { CreateClientDto } from '../actions';
 import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
-import type { Client } from '@prisma/client';
+import type { Client, CreateClientDto } from '@/lib/types/client';
 
 /**
  * New Client Page

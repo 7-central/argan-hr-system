@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { Building2, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { Building2, FileText, LayoutDashboard, Settings, Users, Briefcase } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -37,23 +37,18 @@ const data = {
       title: 'Clients',
       url: '/admin/clients',
       icon: Users,
-      items: [
-        {
-          title: 'All Clients',
-          url: '/admin/clients',
-        },
-        // {
-        //   title: "Add New Client",
-        //   url: "/admin/clients/new",
-        // },
-      ],
+    },
+    {
+      title: 'Contractors',
+      url: '#',
+      icon: Briefcase,
+      badge: 'Coming Soon',
+      disabled: true,
     },
     {
       title: 'Documents',
-      url: '#',
+      url: '/admin/documents',
       icon: FileText,
-      badge: 'Coming Soon',
-      disabled: true,
     },
   ],
   navManagement: [
@@ -66,6 +61,8 @@ const data = {
       title: 'Settings',
       url: '/admin/settings',
       icon: Settings,
+      badge: 'Coming Soon',
+      disabled: true,
     },
   ],
 };

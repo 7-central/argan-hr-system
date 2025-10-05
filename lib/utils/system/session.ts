@@ -7,8 +7,8 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 import { config } from './config';
 
+import type { AdminRole } from '@/lib/types/admin';
 import type { AdminSession } from '@/lib/types/auth';
-import type { AdminRole } from '@prisma/client';
 
 /**
  * Session data structure stored in encrypted cookies

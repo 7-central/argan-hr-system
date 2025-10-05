@@ -2,7 +2,9 @@ import { Suspense } from 'react';
 
 import Link from 'next/link';
 
-import { Plus, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Download, FileSpreadsheet, TrendingUp, Shield, Briefcase, AlertTriangle } from 'lucide-react';
+
+import { validateSession } from '@/lib/utils/system/session';
 
 import {
   DashboardMetrics,
@@ -17,13 +19,79 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  * Admin Dashboard page with Suspense boundaries for loading states
  * Provides smooth loading experience with granular skeletons
  */
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  // Get session to access user's first name
+  const session = await validateSession();
+
+  // Extract first name from full name
+  const firstName = session?.name.split(' ')[0] || 'Admin';
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       {/* Page Title */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="text-sm text-muted-foreground">Welcome back, Admin</div>
+        <h1 className="text-3xl font-bold">Argan HR Dashboard</h1>
+        <div className="text-sm text-muted-foreground pr-1">Welcome back, {firstName}</div>
+      </div>
+
+      {/* New Quick Actions */}
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-3">
+            <Button>Add New Client</Button>
+            <Button>Add Case</Button>
+            <Button>Record Interaction</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* New Metrics Cards - Placeholders */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Client and Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">-</div>
+            <p className="text-xs text-muted-foreground">Coming soon</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Compliance and Obligations</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">-</div>
+            <p className="text-xs text-muted-foreground">Coming soon</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Operational Workload</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">-</div>
+            <p className="text-xs text-muted-foreground">Coming soon</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Risks and Alerts</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">-</div>
+            <p className="text-xs text-muted-foreground">Coming soon</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Metrics Cards with Suspense */}

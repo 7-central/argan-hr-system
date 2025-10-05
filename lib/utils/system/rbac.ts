@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { AdminRole } from '@prisma/client';
-
+import { AdminRoleEnum } from '@/lib/types/admin';
 import { validateSession } from '@/lib/utils/system/session';
 
+import type { AdminRole } from '@/lib/types/admin';
 import type { AdminSession } from '@/lib/types/auth';
 
 /**
@@ -20,12 +20,12 @@ export interface AuthenticatedRequest extends NextRequest {
  * Role hierarchy for permission checking
  * SUPER_ADMIN has all permissions
  * ADMIN has most permissions
- * VIEWER has read-only permissions
+ * READ_ONLY has read-only permissions
  */
 const ROLE_HIERARCHY = {
-  [AdminRole.SUPER_ADMIN]: 3,
-  [AdminRole.ADMIN]: 2,
-  [AdminRole.VIEWER]: 1,
+  [AdminRoleEnum.SUPER_ADMIN]: 3,
+  [AdminRoleEnum.ADMIN]: 2,
+  [AdminRoleEnum.READ_ONLY]: 1,
 };
 
 /**
@@ -70,18 +70,18 @@ export function requireRole(allowedRoles: AdminRole[]) {
 /**
  * Require SUPER_ADMIN role
  */
-export const requireSuperAdmin = () => requireRole([AdminRole.SUPER_ADMIN]);
+export const requireSuperAdmin = () => requireRole([AdminRoleEnum.SUPER_ADMIN]);
 
 /**
  * Require ADMIN or higher role
  */
-export const requireAdmin = () => requireRole([AdminRole.SUPER_ADMIN, AdminRole.ADMIN]);
+export const requireAdmin = () => requireRole([AdminRoleEnum.SUPER_ADMIN, AdminRoleEnum.ADMIN]);
 
 /**
- * Require any authenticated user (VIEWER or higher)
+ * Require any authenticated user (READ_ONLY or higher)
  */
-export const requireViewer = () =>
-  requireRole([AdminRole.SUPER_ADMIN, AdminRole.ADMIN, AdminRole.VIEWER]);
+export const requireReadOnly = () =>
+  requireRole([AdminRoleEnum.SUPER_ADMIN, AdminRoleEnum.ADMIN, AdminRoleEnum.READ_ONLY]);
 
 /**
  * Check if session has specific role
@@ -95,16 +95,18 @@ export function hasAdminRole(session: AdminSession, role: AdminRole): boolean {
  */
 export function canPerformAction(session: AdminSession, action: string): boolean {
   switch (action) {
-    case 'create_admin':
-    case 'delete_admin':
     case 'modify_system_settings':
-      return session.role === AdminRole.SUPER_ADMIN;
+      return session.role === AdminRoleEnum.SUPER_ADMIN;
 
+    case 'create_admin':
+    case 'update_admin':
+    case 'delete_admin':
+    case 'reactivate_admin':
     case 'create_client':
     case 'update_client':
     case 'delete_client':
     case 'view_audit_logs':
-      return session.role === AdminRole.SUPER_ADMIN || session.role === AdminRole.ADMIN;
+      return session.role === AdminRoleEnum.SUPER_ADMIN || session.role === AdminRoleEnum.ADMIN;
 
     case 'view_clients':
     case 'view_dashboard':
@@ -121,12 +123,21 @@ export function canPerformAction(session: AdminSession, action: string): boolean
 export function getUserPermissions(role: AdminRole): string[] {
   const permissions: string[] = ['view_dashboard', 'view_clients'];
 
-  if (role === AdminRole.ADMIN || role === AdminRole.SUPER_ADMIN) {
-    permissions.push('create_client', 'update_client', 'delete_client', 'view_audit_logs');
+  if (role === AdminRoleEnum.ADMIN || role === AdminRoleEnum.SUPER_ADMIN) {
+    permissions.push(
+      'create_client',
+      'update_client',
+      'delete_client',
+      'view_audit_logs',
+      'create_admin',
+      'update_admin',
+      'delete_admin',
+      'reactivate_admin'
+    );
   }
 
-  if (role === AdminRole.SUPER_ADMIN) {
-    permissions.push('create_admin', 'delete_admin', 'modify_system_settings', 'view_system_logs');
+  if (role === AdminRoleEnum.SUPER_ADMIN) {
+    permissions.push('modify_system_settings', 'view_system_logs');
   }
 
   return permissions;

@@ -19,7 +19,7 @@ export class NotFoundError extends AppError {
  * Specific error for client not found
  */
 export class ClientNotFoundError extends NotFoundError {
-  constructor(clientId: string) {
+  constructor(clientId: number) {
     super('Client', clientId);
   }
 }

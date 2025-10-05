@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 
 import { OptimisticClientList } from './optimistic-client-list';
 
-import type { Client } from '@prisma/client';
+import type { Client } from '@/lib/types/client';
 
 /**
  * Props for the ClientPageWrapper component

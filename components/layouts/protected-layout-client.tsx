@@ -1,5 +1,7 @@
 'use client';
 
+import { Toaster } from 'sonner';
+
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarTrigger, SidebarProvider } from '@/components/ui/sidebar';
 
@@ -24,6 +26,7 @@ export function ProtectedLayoutClient({ children, user }: ProtectedLayoutClientP
         </header>
         <main className="flex-1">{children}</main>
       </SidebarInset>
+      <Toaster />
     </SidebarProvider>
   );
 }

@@ -3,64 +3,12 @@ import { Client, PrismaClient } from '@prisma/client';
 import { getDatabaseInstance } from '@/lib/database';
 import { ValidationError, FieldValidationError, ClientNotFoundError } from '@/lib/errors';
 
-// Input validation schemas
-export interface GetClientsParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-}
-
-export interface CreateClientDto {
-  companyName: string;
-  businessId?: string;
-  sector?: string;
-  serviceTier: 'TIER_1' | 'DOC_ONLY' | 'AD_HOC';
-  monthlyRetainer?: number;
-  contactName: string;
-  contactEmail: string;
-  contactPhone?: string;
-  contractStartDate?: Date;
-  contractRenewalDate?: Date;
-  status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
-}
-
-export interface UpdateClientDto {
-  companyName?: string;
-  businessId?: string;
-  sector?: string;
-  serviceTier?: 'TIER_1' | 'DOC_ONLY' | 'AD_HOC';
-  monthlyRetainer?: number;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  contractStartDate?: Date;
-  contractRenewalDate?: Date;
-  status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
-export interface ClientResponse {
-  clients: Client[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
+import type {
+  GetClientsParams,
+  CreateClientDto,
+  UpdateClientDto,
+  ClientResponse,
+} from '@/lib/types/client';
 
 /**
  * ClientService - Business logic for client management
@@ -105,7 +53,10 @@ export class ClientService {
     const [clients, totalCount] = await this.db.$transaction([
       this.db.client.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { status: 'asc' },      // ACTIVE first, then INACTIVE, then PENDING
+          { companyName: 'asc' }, // Alphabetical within each status
+        ],
         take: limit,
         skip: offset,
         select: {
@@ -118,6 +69,11 @@ export class ClientService {
           contactName: true,
           contactEmail: true,
           contactPhone: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          postcode: true,
+          country: true,
           contractStartDate: true,
           contractRenewalDate: true,
           status: true,
@@ -145,16 +101,32 @@ export class ClientService {
   }
 
   /**
-   * Get a client by ID
+   * Get a client by ID with contacts and active contract
    */
-  async getClientById(id: string): Promise<Client> {
-    // Validate ID format
-    if (!id || id.length < 10) {
-      throw new ValidationError('Invalid client ID format');
+  async getClientById(id: number) {
+    // Validate ID
+    if (!id || id < 1) {
+      throw new ValidationError('Invalid client ID');
     }
 
     const client = await this.db.client.findUnique({
       where: { id },
+      include: {
+        contacts: {
+          orderBy: {
+            type: 'asc', // PRIMARY, SECONDARY, INVOICE
+          },
+        },
+        contracts: {
+          where: {
+            contractStatus: 'ACTIVE',
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1, // Get most recent active contract
+        },
+      },
     });
 
     if (!client) {
@@ -203,6 +175,11 @@ export class ClientService {
         contactName: data.contactName,
         contactEmail: data.contactEmail,
         contactPhone: data.contactPhone || null,
+        addressLine1: data.addressLine1 || null,
+        addressLine2: data.addressLine2 || null,
+        city: data.city || null,
+        postcode: data.postcode || null,
+        country: data.country || null,
         contractStartDate: data.contractStartDate || null,
         contractRenewalDate: data.contractRenewalDate || null,
         status: data.status || 'ACTIVE',
@@ -215,10 +192,10 @@ export class ClientService {
   /**
    * Update a client
    */
-  async updateClient(id: string, data: UpdateClientDto): Promise<Client> {
-    // Validate ID format
-    if (!id || id.length < 10) {
-      throw new ValidationError('Invalid client ID format');
+  async updateClient(id: number, data: UpdateClientDto): Promise<Client> {
+    // Validate ID
+    if (!id || id < 1) {
+      throw new ValidationError('Invalid client ID');
     }
 
     // Check if client exists
@@ -270,6 +247,11 @@ export class ClientService {
         contactName: data.contactName,
         contactEmail: data.contactEmail,
         contactPhone: data.contactPhone !== undefined ? data.contactPhone : undefined,
+        addressLine1: data.addressLine1 !== undefined ? data.addressLine1 : undefined,
+        addressLine2: data.addressLine2 !== undefined ? data.addressLine2 : undefined,
+        city: data.city !== undefined ? data.city : undefined,
+        postcode: data.postcode !== undefined ? data.postcode : undefined,
+        country: data.country !== undefined ? data.country : undefined,
         contractStartDate:
           data.contractStartDate !== undefined ? data.contractStartDate : undefined,
         contractRenewalDate:
@@ -284,10 +266,10 @@ export class ClientService {
   /**
    * Soft delete a client
    */
-  async deleteClient(id: string): Promise<Client> {
-    // Validate ID format
-    if (!id || id.length < 10) {
-      throw new ValidationError('Invalid client ID format');
+  async deleteClient(id: number): Promise<Client> {
+    // Validate ID
+    if (!id || id < 1) {
+      throw new ValidationError('Invalid client ID');
     }
 
     // Check if client exists
@@ -320,7 +302,7 @@ export class ClientService {
   /**
    * Private helper: Check for duplicate email
    */
-  private async checkDuplicateEmail(email: string, excludeId?: string): Promise<void> {
+  private async checkDuplicateEmail(email: string, excludeId?: number): Promise<void> {
     const existingClient = await this.db.client.findFirst({
       where: {
         contactEmail: email,

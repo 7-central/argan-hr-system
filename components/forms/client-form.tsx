@@ -20,9 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import type { CreateClientDto } from '@/app/admin/(protected)/clients/actions';
 import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
-import type { Client } from '@prisma/client';
+import type { Client, CreateClientDto } from '@/lib/types/client';
 
 /**
  * Client form validation schema

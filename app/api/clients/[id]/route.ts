@@ -15,7 +15,8 @@ async function getClientHandler(
   context: { params: Promise<{ id: string }> }
 ) {
   const requestId = getRequestId(request);
-  const { id } = await context.params;
+  const { id: idString } = await context.params;
+  const id = parseInt(idString, 10);
 
   // Use ClientService to get client
   const client = await clientService.getClientById(id);
@@ -31,7 +32,8 @@ async function updateClientHandler(
   context: { params: Promise<{ id: string }> }
 ) {
   const requestId = getRequestId(request);
-  const { id } = await context.params;
+  const { id: idString } = await context.params;
+  const id = parseInt(idString, 10);
   const body = await request.json();
 
   // Use ClientService to update client
@@ -48,7 +50,8 @@ async function deleteClientHandler(
   context: { params: Promise<{ id: string }> }
 ) {
   const requestId = getRequestId(request);
-  const { id } = await context.params;
+  const { id: idString } = await context.params;
+  const id = parseInt(idString, 10);
 
   // Use ClientService to soft delete client
   const client = await clientService.deleteClient(id);
