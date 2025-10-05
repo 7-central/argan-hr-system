@@ -119,7 +119,7 @@ export class ClientService {
         },
         contracts: {
           where: {
-            contractStatus: 'ACTIVE',
+            status: 'ACTIVE',
           },
           orderBy: {
             createdAt: 'desc',
