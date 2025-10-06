@@ -38,7 +38,7 @@ interface ContractInfoContentProps {
   formatDate: (date: Date | string | null) => string;
 }
 
-export function ContractInfoContent({ contract, clientId, formatDate }: ContractInfoContentProps) {
+export function ContractInfoContent({ contract, clientId: _clientId, formatDate }: ContractInfoContentProps) {
   if (!contract) {
     return (
       <Card>

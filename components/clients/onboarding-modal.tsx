@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
+import { getOnboarding, updateOnboardingField } from '@/lib/actions/client.actions';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -57,10 +59,9 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${clientId}/onboarding`);
-      const result = await response.json();
+      const result = await getOnboarding(clientId);
 
-      if (!response.ok || !result.success) {
+      if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to fetch onboarding data');
       }
 
@@ -90,21 +91,9 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${clientId}/onboarding`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type,
-          field,
-          value,
-        }),
-      });
+      const result = await updateOnboardingField(clientId, type, field, value);
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
+      if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to update onboarding field');
       }
 
