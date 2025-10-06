@@ -39,6 +39,7 @@ export async function GET(
             id: true,
             contractNumber: true,
             directDebitSetup: true,
+            directDebitConfirmed: true,
             signedContractReceived: true,
             contractUploaded: true,
             contractAddedToXero: true,
@@ -47,14 +48,6 @@ export async function GET(
             firstInvoiceSent: true,
             firstPaymentMade: true,
             paymentTermsAgreed: true,
-            hrAdminRate: true,
-            hrAdminRateNotNeeded: true,
-            employmentLawRate: true,
-            employmentLawRateNotNeeded: true,
-            mileageRate: true,
-            mileageRateNotNeeded: true,
-            overnightRate: true,
-            overnightRateNotNeeded: true,
           },
           orderBy: {
             createdAt: 'desc',
@@ -139,6 +132,7 @@ export async function PATCH(
       // Update contract field
       const validFields = [
         'directDebitSetup',
+        'directDebitConfirmed',
         'signedContractReceived',
         'contractUploaded',
         'contractAddedToXero',
@@ -147,10 +141,6 @@ export async function PATCH(
         'firstInvoiceSent',
         'firstPaymentMade',
         'paymentTermsAgreed',
-        'hrAdminRateNotNeeded',
-        'employmentLawRateNotNeeded',
-        'mileageRateNotNeeded',
-        'overnightRateNotNeeded',
       ];
 
       if (!validFields.includes(field)) {
@@ -207,6 +197,7 @@ export async function PATCH(
             id: true,
             contractNumber: true,
             directDebitSetup: true,
+            directDebitConfirmed: true,
             signedContractReceived: true,
             contractUploaded: true,
             contractAddedToXero: true,
@@ -215,14 +206,6 @@ export async function PATCH(
             firstInvoiceSent: true,
             firstPaymentMade: true,
             paymentTermsAgreed: true,
-            hrAdminRate: true,
-            hrAdminRateNotNeeded: true,
-            employmentLawRate: true,
-            employmentLawRateNotNeeded: true,
-            mileageRate: true,
-            mileageRateNotNeeded: true,
-            overnightRate: true,
-            overnightRateNotNeeded: true,
           },
           orderBy: {
             createdAt: 'desc',
