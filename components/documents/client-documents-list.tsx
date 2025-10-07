@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import type { Client } from '@/lib/types/client';
 
@@ -26,11 +28,11 @@ import type { Client } from '@/lib/types/client';
  * Document type categories
  */
 const DOCUMENT_TYPES = [
-  { id: 'policies', name: 'Policies', icon: FileText },
-  { id: 'handbooks', name: 'Handbooks', icon: FolderOpen },
-  { id: 'contracts', name: 'Contracts', icon: FileText },
-  { id: 'internal', name: 'Internal Documents', icon: FileText },
-  { id: 'archive', name: 'Archive', icon: FolderOpen },
+  { id: 'policies', name: 'Policies', tooltipLabel: 'Add Policy', icon: FileText },
+  { id: 'handbooks', name: 'Handbooks', tooltipLabel: 'Add Handbook', icon: FolderOpen },
+  { id: 'contracts', name: 'Contracts', tooltipLabel: 'Add Contract', icon: FileText },
+  { id: 'internal', name: 'Internal Documents', tooltipLabel: 'Add Internal Document', icon: FileText },
+  { id: 'archive', name: 'Archive', tooltipLabel: 'Add Archive Document', icon: FolderOpen },
 ] as const;
 
 /**
@@ -62,13 +64,14 @@ interface ClientDocumentsListProps {
  */
 export function ClientDocumentsList({ clients }: ClientDocumentsListProps) {
   /**
-   * Calculate total document count for a client (placeholder)
-   * TODO: Replace with actual count from database
+   * Calculate total document count for a client
+   * Sums up all document type counts for this client
    */
   const getClientDocumentCount = (clientId: number): number => {
-    // Placeholder: Random count between 0-15
-    const hash = clientId % 16;
-    return hash;
+    // Sum up all document types for this client
+    return DOCUMENT_TYPES.reduce((total, docType) => {
+      return total + getTypeDocumentCount(clientId, docType.id);
+    }, 0);
   };
 
   /**
@@ -100,11 +103,11 @@ export function ClientDocumentsList({ clients }: ClientDocumentsListProps) {
   };
 
   return (
-    <Card>
+    <Card className="border-0 shadow-none">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Building2 className="h-5 w-5" />
-          <h2 className="text-xl font-semibold">Client Documents</h2>
+          <Building2 className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold text-primary">Client Documents</h2>
         </div>
 
         {clients.length === 0 ? (
@@ -147,29 +150,50 @@ export function ClientDocumentsList({ clients }: ClientDocumentsListProps) {
                             value={docType.id}
                             className="border-l-2 border-muted"
                           >
-                            <div className="flex items-center justify-between w-full pr-2">
-                              <AccordionTrigger className="hover:no-underline py-3 flex-1 pr-0">
-                                <div className="flex items-center gap-2">
-                                  <docType.icon className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex items-center pr-2">
+                              <AccordionTrigger className="hover:no-underline py-3 pr-0 [&>svg]:mr-0 min-w-0">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <docType.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                   <span className="text-sm font-medium">{docType.name}</span>
                                 </div>
                               </AccordionTrigger>
-                              <div className="flex items-center gap-4 ml-2">
-                                <Plus
-                                  className="h-4 w-4 text-muted-foreground hover:text-primary cursor-pointer transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleGenerateDocument(client, docType.id, docType.name);
-                                  }}
-                                />
-                                <Upload
-                                  className="h-4 w-4 text-muted-foreground hover:text-primary cursor-pointer transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUploadDocument(client, docType.id, docType.name);
-                                  }}
-                                />
-                                <Badge variant="secondary" className="text-xs">
+
+                              <div className="flex items-center gap-2 ml-auto pl-4 flex-shrink-0">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleGenerateDocument(client, docType.id, docType.name);
+                                      }}
+                                    >
+                                      <Plus className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{docType.tooltipLabel}</TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleUploadDocument(client, docType.id, docType.name);
+                                      }}
+                                    >
+                                      <Upload className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Upload Document</TooltipContent>
+                                </Tooltip>
+
+                                <Badge variant="secondary" className="text-xs min-w-[24px] justify-center">
                                   {typeCount}
                                 </Badge>
                               </div>

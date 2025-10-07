@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { ClientForm } from '@/components/forms/client-form';
+import { ClientForm } from '@/components/forms/client-form-wizard';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -99,13 +99,11 @@ export default function NewClientPage() {
 
       {/* Page Content */}
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="mx-auto w-full max-w-4xl">
-          <ClientForm
-            onSubmit={handleCreateClient}
-            onCancel={handleCancel}
-            isLoading={isRedirecting}
-          />
-        </div>
+        <ClientForm
+          onSubmit={handleCreateClient}
+          onCancel={handleCancel}
+          isLoading={isRedirecting}
+        />
       </div>
     </div>
   );

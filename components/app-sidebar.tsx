@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { Building2, FileText, LayoutDashboard, Settings, Users, Briefcase } from 'lucide-react';
+import { Building2, FileText, LayoutDashboard, Settings, Users, Briefcase, FolderOpen } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -15,28 +15,28 @@ import {
 } from '@/components/ui/sidebar';
 
 // Navigation data for Argan HR
-const data = {
-  user: {
-    name: 'Admin User',
-    email: 'admin@argan.hr',
-    avatar: '/avatars/admin.jpg',
-  },
+const navData = {
   company: {
     name: 'Argan HR',
     logo: Building2,
-    plan: 'Enterprise',
   },
   navMain: [
     {
       title: 'Dashboard',
       url: '/admin',
       icon: LayoutDashboard,
-      isActive: true,
     },
     {
       title: 'Clients',
       url: '/admin/clients',
       icon: Users,
+    },
+    {
+      title: 'Cases',
+      url: '#',
+      icon: FolderOpen,
+      badge: 'Coming Soon',
+      disabled: true,
     },
     {
       title: 'Contractors',
@@ -83,34 +83,48 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         email: user.email,
         avatar: '/avatars/admin.jpg',
       }
-    : data.user;
+    : {
+        name: 'Admin User',
+        email: 'admin@argan.hr',
+        avatar: '/avatars/admin.jpg',
+      };
+
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-2">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <data.company.logo className="size-4" />
-          </div>
-          <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-semibold">{data.company.name}</span>
-            <span className="text-xs text-muted-foreground">{data.company.plan}</span>
-          </div>
+    <Sidebar collapsible="icon" className="border-r-0 overflow-hidden" {...props}>
+      <div className="relative h-full w-full bg-primary">
+        <div className="absolute inset-0 overflow-hidden">
+          <div
+            className="animate-aurora pointer-events-none absolute -inset-[10px] opacity-30 blur-[10px] will-change-transform"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(100deg, #15803d 10%, #16a34a 15%, #22c55e 20%, #4ade80 25%, #86efac 30%)",
+              backgroundSize: "200%",
+              backgroundPosition: "50% 50%",
+            }}
+          />
         </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        {data.navManagement && (
-          <>
-            <div className="px-2 py-2">
-              <div className="text-xs font-semibold text-muted-foreground">Management</div>
+        <div className="relative z-10 h-full flex flex-col">
+          <SidebarHeader>
+            <div className="flex items-center justify-center gap-2 px-2 group-data-[collapsible=icon]:px-0">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white/20 text-white group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:rounded-md">
+                <navData.company.logo className="size-4" />
+              </div>
+              <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+                <span className="font-semibold text-white">{navData.company.name}</span>
+              </div>
             </div>
-            <NavMain items={data.navManagement} />
-          </>
-        )}
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={userData} />
-      </SidebarFooter>
+          </SidebarHeader>
+          <SidebarContent className="flex-1">
+            <NavMain items={navData.navMain} label="Platform" />
+            {navData.navManagement && (
+              <NavMain items={navData.navManagement} label="Management" />
+            )}
+          </SidebarContent>
+          <SidebarFooter>
+            <NavUser user={userData} />
+          </SidebarFooter>
+        </div>
+      </div>
       <SidebarRail />
     </Sidebar>
   );

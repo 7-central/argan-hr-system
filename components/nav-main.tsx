@@ -16,6 +16,7 @@ import {
 
 export function NavMain({
   items,
+  label,
 }: {
   items: {
     title: string;
@@ -29,10 +30,11 @@ export function NavMain({
       url: string;
     }[];
   }[];
+  label?: string;
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      {label && <SidebarGroupLabel className="text-white/70">{label}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
           // If item has subitems, render as collapsible
@@ -75,12 +77,12 @@ export function NavMain({
           // If no subitems, render as direct link
           return (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title} isActive={item.isActive}>
+              <SidebarMenuButton asChild tooltip={item.title} isActive={item.isActive} className="text-white hover:text-white hover:bg-transparent active:bg-transparent active:text-white data-[active=true]:text-white data-[active=true]:bg-transparent">
                 <a href={item.url}>
-                  {item.icon && <item.icon />}
+                  {item.icon && <item.icon className="text-white" />}
                   <span>{item.title}</span>
                   {item.badge && (
-                    <span className="ml-auto text-xs text-muted-foreground">{item.badge}</span>
+                    <span className="ml-auto text-xs text-white/60">{item.badge}</span>
                   )}
                 </a>
               </SidebarMenuButton>

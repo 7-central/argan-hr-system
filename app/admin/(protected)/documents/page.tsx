@@ -49,9 +49,9 @@ export default async function DocumentsPage() {
       {/* Placeholder Content */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Document Categories Placeholder */}
-        <Card>
+        <Card className="border-primary">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <FileText className="h-5 w-5" />
               Client Documents
             </CardTitle>
@@ -65,9 +65,9 @@ export default async function DocumentsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <FolderOpen className="h-5 w-5" />
               Templates
             </CardTitle>
@@ -81,9 +81,9 @@ export default async function DocumentsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <FileText className="h-5 w-5" />
               Recent Uploads
             </CardTitle>

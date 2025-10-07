@@ -46,9 +46,27 @@ export interface CreateClientDto {
   contractRenewalDate?: Date;
   status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   externalAudit?: boolean;
+  auditRecords?: Array<{
+    auditedBy: string;
+    auditInterval: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
+    nextAuditDate: Date;
+  }>;
+  // Legacy single audit fields (deprecated - use auditRecords instead)
   auditedBy?: string;
   auditInterval?: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
   nextAuditDate?: Date;
+  paymentMethod?: 'INVOICE' | 'DIRECT_DEBIT';
+  // Contract Service Agreement fields
+  hrAdminInclusiveHours?: number;
+  employmentLawInclusiveHours?: number;
+  inclusiveServicesInScope?: string[];
+  inclusiveServicesOutOfScope?: string[];
+  hrAdminRate?: number;
+  hrAdminRateUnit?: 'HOURLY' | 'DAILY';
+  employmentLawRate?: number;
+  employmentLawRateUnit?: 'HOURLY' | 'DAILY';
+  mileageRate?: number;
+  overnightRate?: number;
 }
 
 export interface UpdateClientDto {
@@ -81,6 +99,15 @@ export interface UpdateClientDto {
   auditedBy?: string;
   auditInterval?: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
   nextAuditDate?: Date;
+  paymentMethod?: 'INVOICE' | 'DIRECT_DEBIT';
+  directDebitSetup?: boolean;
+  directDebitConfirmed?: boolean;
+  contractAddedToXero?: boolean;
+  recurringInvoiceSetup?: boolean;
+  dpaSignedGdpr?: boolean;
+  firstInvoiceSent?: boolean;
+  firstPaymentMade?: boolean;
+  lastPriceIncrease?: Date;
 }
 
 export interface PaginatedResponse<T> {

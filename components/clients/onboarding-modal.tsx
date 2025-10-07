@@ -23,20 +23,23 @@ interface OnboardingData {
     id: number;
     companyName: string;
     welcomeEmailSent: boolean;
+    paymentMethod: string | null;
+    directDebitSetup: boolean | null;
+    directDebitConfirmed: boolean | null;
+    contractAddedToXero: boolean;
+    recurringInvoiceSetup: boolean | null;
+    dpaSignedGdpr: boolean;
+    firstInvoiceSent: boolean;
+    firstPaymentMade: boolean;
   };
   contract: {
     id: number;
     contractNumber: string;
-    directDebitSetup: boolean;
-    directDebitConfirmed: boolean;
     signedContractReceived: boolean;
     contractUploaded: boolean;
-    contractAddedToXero: boolean;
     contractSentToClient: boolean;
-    dpaSignedGdpr: boolean;
-    firstInvoiceSent: boolean;
-    firstPaymentMade: boolean;
     paymentTermsAgreed: boolean;
+    outOfScopeRateAgreed: boolean;
   } | null;
 }
 
@@ -109,26 +112,27 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
   const calculateProgress = () => {
     if (!data) return { completed: 0, total: 0, percentage: 0 };
 
-    // Client onboarding fields (includes some contract fields displayed in client section)
-    const clientFields = data.contract
-      ? [
-          data.client.welcomeEmailSent,
-          data.contract.directDebitSetup,
-          data.contract.directDebitConfirmed,
-          data.contract.contractAddedToXero,
-          data.contract.dpaSignedGdpr,
-          data.contract.firstInvoiceSent,
-          data.contract.firstPaymentMade,
-        ]
-      : [data.client.welcomeEmailSent];
+    // Client onboarding fields (payment infrastructure is now at client level)
+    // Only include fields that are not null (N/A)
+    const clientFields = [
+      data.client.welcomeEmailSent,
+      data.client.directDebitSetup,
+      data.client.directDebitConfirmed,
+      data.client.contractAddedToXero,
+      data.client.dpaSignedGdpr,
+      data.client.firstInvoiceSent,
+      data.client.firstPaymentMade,
+      data.client.recurringInvoiceSetup,
+    ].filter((field) => field !== null); // Exclude N/A fields from progress
 
-    // Contract onboarding fields
+    // Contract onboarding fields (contract-specific items only)
     const contractFields = data.contract
       ? [
           data.contract.signedContractReceived,
           data.contract.contractUploaded,
           data.contract.contractSentToClient,
           data.contract.paymentTermsAgreed,
+          data.contract.outOfScopeRateAgreed,
         ]
       : [];
 
@@ -209,14 +213,15 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                     </Label>
                   </div>
 
-                  {data.contract && (
+                  {/* Only show direct debit fields if payment method is DIRECT_DEBIT */}
+                  {data.client.directDebitSetup !== null && (
                     <>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="directDebitSetup"
-                          checked={data.contract.directDebitSetup}
+                          checked={data.client.directDebitSetup || false}
                           onCheckedChange={(checked) =>
-                            updateField('contract', 'directDebitSetup', checked === true)
+                            updateField('client', 'directDebitSetup', checked === true)
                           }
                           disabled={saving}
                         />
@@ -231,9 +236,9 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="directDebitConfirmed"
-                          checked={data.contract.directDebitConfirmed}
+                          checked={data.client.directDebitConfirmed || false}
                           onCheckedChange={(checked) =>
-                            updateField('contract', 'directDebitConfirmed', checked === true)
+                            updateField('client', 'directDebitConfirmed', checked === true)
                           }
                           disabled={saving}
                         />
@@ -244,76 +249,96 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                           Direct debit confirmed
                         </Label>
                       </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="contractAddedToXero"
-                          checked={data.contract.contractAddedToXero}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'contractAddedToXero', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="contractAddedToXero"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          Added to Xero
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="dpaSignedGdpr"
-                          checked={data.contract.dpaSignedGdpr}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'dpaSignedGdpr', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="dpaSignedGdpr"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          DPA signed (GDPR)
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="firstInvoiceSent"
-                          checked={data.contract.firstInvoiceSent}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'firstInvoiceSent', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="firstInvoiceSent"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          First invoice sent
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="firstPaymentMade"
-                          checked={data.contract.firstPaymentMade}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'firstPaymentMade', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="firstPaymentMade"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          First payment made
-                        </Label>
-                      </div>
                     </>
                   )}
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="contractAddedToXero"
+                      checked={data.client.contractAddedToXero}
+                      onCheckedChange={(checked) =>
+                        updateField('client', 'contractAddedToXero', checked === true)
+                      }
+                      disabled={saving}
+                    />
+                    <Label
+                      htmlFor="contractAddedToXero"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Added to Xero
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="dpaSignedGdpr"
+                      checked={data.client.dpaSignedGdpr}
+                      onCheckedChange={(checked) =>
+                        updateField('client', 'dpaSignedGdpr', checked === true)
+                      }
+                      disabled={saving}
+                    />
+                    <Label
+                      htmlFor="dpaSignedGdpr"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      DPA signed (GDPR)
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="firstInvoiceSent"
+                      checked={data.client.firstInvoiceSent}
+                      onCheckedChange={(checked) =>
+                        updateField('client', 'firstInvoiceSent', checked === true)
+                      }
+                      disabled={saving}
+                    />
+                    <Label
+                      htmlFor="firstInvoiceSent"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      First invoice sent
+                    </Label>
+                  </div>
+
+                  {/* Only show recurring invoice setup if payment method is INVOICE */}
+                  {data.client.recurringInvoiceSetup !== null && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="recurringInvoiceSetup"
+                        checked={data.client.recurringInvoiceSetup || false}
+                        onCheckedChange={(checked) =>
+                          updateField('client', 'recurringInvoiceSetup', checked === true)
+                        }
+                        disabled={saving}
+                      />
+                      <Label
+                        htmlFor="recurringInvoiceSetup"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Recurring invoice setup
+                      </Label>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="firstPaymentMade"
+                      checked={data.client.firstPaymentMade}
+                      onCheckedChange={(checked) =>
+                        updateField('client', 'firstPaymentMade', checked === true)
+                      }
+                      disabled={saving}
+                    />
+                    <Label
+                      htmlFor="firstPaymentMade"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      First payment made
+                    </Label>
+                  </div>
                 </div>
               </div>
 
@@ -330,23 +355,6 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                       Contract: {data.contract.contractNumber}
                     </p>
                     <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="signedContractReceived"
-                          checked={data.contract.signedContractReceived}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'signedContractReceived', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="signedContractReceived"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          Signed contract received
-                        </Label>
-                      </div>
-
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="contractUploaded"
@@ -383,6 +391,23 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
 
                       <div className="flex items-center space-x-2">
                         <Checkbox
+                          id="signedContractReceived"
+                          checked={data.contract.signedContractReceived}
+                          onCheckedChange={(checked) =>
+                            updateField('contract', 'signedContractReceived', checked === true)
+                          }
+                          disabled={saving}
+                        />
+                        <Label
+                          htmlFor="signedContractReceived"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Signed contract received
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
                           id="paymentTermsAgreed"
                           checked={data.contract.paymentTermsAgreed}
                           onCheckedChange={(checked) =>
@@ -395,6 +420,23 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                           className="text-sm font-normal cursor-pointer"
                         >
                           Payment terms agreed
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="outOfScopeRateAgreed"
+                          checked={data.contract.outOfScopeRateAgreed}
+                          onCheckedChange={(checked) =>
+                            updateField('contract', 'outOfScopeRateAgreed', checked === true)
+                          }
+                          disabled={saving}
+                        />
+                        <Label
+                          htmlFor="outOfScopeRateAgreed"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Out of scope rate agreed
                         </Label>
                       </div>
                     </div>

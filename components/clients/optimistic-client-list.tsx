@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, startTransition } from 'react';
 
-import { Edit, Trash2, Eye, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+import { Edit, UserX, UserCheck, Eye, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, FileText, Briefcase } from 'lucide-react';
 
 import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient';
 
@@ -29,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import type { OptimisticClient } from '@/lib/hooks/useOptimisticClient';
 import type { Client } from '@/lib/types/client';
@@ -64,7 +67,9 @@ export function OptimisticClientList({
   onEdit,
   onView,
 }: OptimisticClientListProps) {
+  const router = useRouter();
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [clientToDeactivate, setClientToDeactivate] = useState<Client | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<'companyName' | 'sector' | 'serviceTier' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -117,21 +122,42 @@ export function OptimisticClientList({
   }, [rawOptimisticClients, sortColumn, sortDirection]);
 
   /**
-   * Handle optimistic client deletion
+   * Handle activating a client (PENDING/INACTIVE → ACTIVE)
    * Shows immediate feedback then handles server response
    */
-  const handleDeleteClient = async (client: Client) => {
+  const handleActivateClient = async (client: Client) => {
     setDeleteError(null);
 
-    const result = await deleteClientOptimistic(client.id);
-
-    if (!result.success) {
-      // Show error message for failed deletion
-      setDeleteError(result.error || 'Failed to delete client');
-    }
+    startTransition(() => {
+      deleteClientOptimistic(client.id).then((result) => {
+        if (!result.success) {
+          // Show error message for failed activation
+          setDeleteError(result.error || 'Failed to activate client');
+        }
+      });
+    });
 
     // Close dialog
     setClientToDelete(null);
+  };
+
+  /**
+   * Handle deactivating an ACTIVE client to a chosen status
+   */
+  const handleDeactivateToStatus = async (client: Client, targetStatus: 'PENDING' | 'INACTIVE') => {
+    setDeleteError(null);
+
+    startTransition(() => {
+      deleteClientOptimistic(client.id, targetStatus).then((result) => {
+        if (!result.success) {
+          // Show error message for failed deactivation
+          setDeleteError(result.error || 'Failed to deactivate client');
+        }
+      });
+    });
+
+    // Close dialog
+    setClientToDeactivate(null);
   };
 
   /**
@@ -228,48 +254,48 @@ export function OptimisticClientList({
       )}
 
       {/* Client Table */}
-      <Card>
+      <Card className="border-0 shadow-none">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('companyName')}
                   >
                     Client
                     {getSortIcon('companyName')}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('sector')}
                   >
                     Sector
                     {getSortIcon('sector')}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('serviceTier')}
                   >
                     Service Tier
                     {getSortIcon('serviceTier')}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('status')}
                   >
                     Status
                     {getSortIcon('status')}
                   </button>
                 </TableHead>
-                <TableHead className="w-[180px]">Actions</TableHead>
+                <TableHead className="w-[260px] text-center text-primary text-base font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -286,69 +312,137 @@ export function OptimisticClientList({
                       transition-all duration-200
                     `}
                   >
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
+                    <TableCell className="font-medium text-center">
+                      <div className="flex flex-col items-center">
                         <span className={client.status === 'INACTIVE' ? 'line-through' : ''}>
                           {client.companyName}
                         </span>
                         {getOptimisticIndicator(client)}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground text-center">
                       {client.sector || '-'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant="outline" className="w-32 justify-center">
                         {getServiceTierLabel(client.serviceTier)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant={getStatusVariant(client.status)} className="w-32 justify-center">
                         {client.status.charAt(0) + client.status.slice(1).toLowerCase()}
                       </Badge>
                     </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:text-green-600 transition-colors"
-                          onClick={() => onView?.(client)}
-                          disabled={client._pending}
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:text-green-600 transition-colors"
-                          onClick={() => onEdit?.(client)}
-                          disabled={client._pending || client.status === 'INACTIVE'}
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:text-green-600 transition-colors"
-                          onClick={() => setOnboardingClientId(client.id)}
-                          disabled={client._pending || client.status === 'INACTIVE'}
-                        >
-                          <ClipboardCheck className="h-4 w-4" />
-                          <span className="sr-only">Onboarding</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:text-red-600 transition-colors"
-                          onClick={() => setClientToDelete(client)}
-                          disabled={client._pending || client.status === 'INACTIVE'}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:text-green-600 transition-colors"
+                              onClick={() => onView?.(client)}
+                              disabled={client._pending}
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">View</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View Client</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-green-700 hover:text-green-500 transition-colors"
+                              onClick={() => onEdit?.(client)}
+                              disabled={client._pending || client.status === 'INACTIVE'}
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Client</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-amber-800 hover:text-amber-700 transition-colors"
+                              onClick={() => router.push(`/admin/clients/${client.id}/cases`)}
+                              disabled={client._pending || client.status === 'INACTIVE'}
+                            >
+                              <Briefcase className="h-4 w-4" />
+                              <span className="sr-only">Cases</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Cases</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-yellow-500 hover:text-yellow-600 transition-colors"
+                              onClick={() => setOnboardingClientId(client.id)}
+                              disabled={client._pending || client.status === 'INACTIVE'}
+                            >
+                              <ClipboardCheck className="h-4 w-4" />
+                              <span className="sr-only">Onboarding</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Onboarding</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-blue-500 hover:text-blue-600 transition-colors"
+                              onClick={() => router.push(`/admin/clients/${client.id}/contracts`)}
+                              disabled={client._pending || client.status === 'INACTIVE'}
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="sr-only">View Contracts</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View Contracts</TooltipContent>
+                        </Tooltip>
+                        {client.status === 'ACTIVE' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-700 hover:text-red-500 transition-colors"
+                                onClick={() => setClientToDeactivate(client)}
+                                disabled={client._pending}
+                              >
+                                <UserX className="h-4 w-4" />
+                                <span className="sr-only">Deactivate</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Deactivate Client</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-700 hover:text-green-500 transition-colors"
+                                onClick={() => setClientToDelete(client)}
+                                disabled={client._pending}
+                              >
+                                <UserCheck className="h-4 w-4" />
+                                <span className="sr-only">Activate</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Activate Client</TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -379,24 +473,49 @@ export function OptimisticClientList({
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Activate Confirmation Dialog (PENDING/INACTIVE → ACTIVE) */}
       <AlertDialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogTitle>Activate Client</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete{' '}
-              <span className="font-semibold">{clientToDelete?.companyName}</span>? This will set
-              the client status to inactive. This action can be reversed later.
+              Are you sure you want to activate{' '}
+              <span className="font-semibold">{clientToDelete?.companyName}</span>? The client
+              will be set to active status.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => clientToDelete && handleDeleteClient(clientToDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => clientToDelete && handleActivateClient(clientToDelete)}
             >
-              Delete Client
+              Activate Client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Deactivate Choice Dialog (ACTIVE → PENDING or INACTIVE) */}
+      <AlertDialog open={!!clientToDeactivate} onOpenChange={() => setClientToDeactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Do you want to change{' '}
+              <span className="font-semibold">{clientToDeactivate?.companyName}</span> to pending or inactive status?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clientToDeactivate && handleDeactivateToStatus(clientToDeactivate, 'PENDING')}
+            >
+              Set to Pending
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => clientToDeactivate && handleDeactivateToStatus(clientToDeactivate, 'INACTIVE')}
+            >
+              Set to Inactive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

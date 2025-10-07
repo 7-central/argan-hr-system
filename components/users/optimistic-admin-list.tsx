@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 
-import { Edit, UserX, UserCheck, MoreHorizontal, Loader2, AlertCircle, Clock, Shield, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, UserX, UserCheck, AlertCircle, Clock, Shield, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { useOptimisticAdmin } from '@/lib/hooks/useOptimisticAdmin';
 
@@ -21,13 +21,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Table,
   TableBody,
   TableCell,
@@ -35,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import type { OptimisticAdmin } from '@/lib/hooks/useOptimisticAdmin';
 import type { ServerActionResult } from '@/lib/types/action';
@@ -283,57 +277,48 @@ export function OptimisticAdminList({
       )}
 
       {/* Admin Table */}
-      <Card>
+      <Card className="border-0 shadow-none">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('name')}
                   >
                     Name
                     {getSortIcon('name')}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('email')}
                   >
                     Email
                     {getSortIcon('email')}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('role')}
                   >
                     Role
                     {getSortIcon('role')}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <button
-                    className="flex items-center hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('isActive')}
                   >
                     Status
                     {getSortIcon('isActive')}
                   </button>
                 </TableHead>
-                <TableHead>
-                  <button
-                    className="flex items-center hover:text-foreground transition-colors"
-                    onClick={() => handleSort('createdAt')}
-                  >
-                    Created
-                    {getSortIcon('createdAt')}
-                  </button>
-                </TableHead>
-                <TableHead className="w-[70px]">Actions</TableHead>
+                <TableHead className="w-[180px] text-center text-primary text-base font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -348,80 +333,86 @@ export function OptimisticAdminList({
                       transition-all duration-200
                     `}
                   >
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
+                    <TableCell className="font-medium text-center">
+                      <div className="flex flex-col items-center">
                         <span className={!admin.isActive ? 'line-through' : ''}>{admin.name}</span>
                         {getOptimisticIndicator(admin)}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <div className="text-sm">{admin.email}</div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant={getRoleBadgeVariant(admin.role)} className="w-32 justify-center">
                         {admin.role === 'SUPER_ADMIN' && <Shield className="mr-1 h-3 w-3" />}
                         {getRoleLabel(admin.role)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(admin.isActive)} className="w-32 justify-center">
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={getStatusVariant(admin.isActive)}
+                        className={`w-32 justify-center ${!admin.isActive ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200' : ''}`}
+                      >
                         {admin.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(admin.createdAt).toLocaleDateString('en-GB')}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                            disabled={admin._pending || !canManageAdmins}
-                          >
-                            <span className="sr-only">Open menu</span>
-                            {admin._pending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <MoreHorizontal className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => onEdit?.(admin)}
-                            disabled={admin._pending || !admin.isActive}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {admin.isActive ? (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => setAdminToDeactivate(admin)}
-                              disabled={admin._pending}
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                              onClick={() => onEdit?.(admin)}
+                              disabled={admin._pending || !admin.isActive || !canManageAdmins}
                             >
-                              <UserX className="mr-2 h-4 w-4" />
-                              Deactivate
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={() => setAdminToReactivate(admin)}
-                              disabled={admin._pending}
-                            >
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Reactivate
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit User</TooltipContent>
+                        </Tooltip>
+                        {admin.isActive ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-700 hover:text-red-500 transition-colors"
+                                onClick={() => setAdminToDeactivate(admin)}
+                                disabled={admin._pending || !canManageAdmins}
+                              >
+                                <UserX className="h-4 w-4" />
+                                <span className="sr-only">Deactivate</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Deactivate User</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-700 hover:text-green-500 transition-colors"
+                                onClick={() => setAdminToReactivate(admin)}
+                                disabled={admin._pending || !canManageAdmins}
+                              >
+                                <UserCheck className="h-4 w-4" />
+                                <span className="sr-only">Reactivate</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Reactivate User</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     {search ? (
                       <div>
                         <p className="text-lg font-semibold">No admin users found</p>

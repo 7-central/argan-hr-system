@@ -32,12 +32,12 @@ export default async function AdminDashboard() {
       </div>
 
       {/* New Quick Actions */}
-      <Card className="w-full">
+      <Card className="w-full border-0 shadow-none">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="text-primary">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-6">
             <Link href="/admin/clients/new" className="w-full">
               <Button className="w-full">Add New Client</Button>
             </Link>
@@ -49,10 +49,10 @@ export default async function AdminDashboard() {
 
       {/* New Metrics Cards - Placeholders */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Client and Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-primary">Client and Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">-</div>
@@ -60,10 +60,10 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Compliance and Obligations</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-primary">Compliance and Obligations</CardTitle>
+            <Shield className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">-</div>
@@ -71,10 +71,10 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Operational Workload</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-primary">Operational Workload</CardTitle>
+            <Briefcase className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">-</div>
@@ -82,10 +82,10 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Risks and Alerts</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-primary">Risks and Alerts</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">-</div>
@@ -102,9 +102,9 @@ export default async function AdminDashboard() {
       {/* Main Content Area */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         {/* Recent Clients Placeholder */}
-        <Card className="col-span-full lg:col-span-4">
+        <Card className="col-span-full lg:col-span-4 border-primary">
           <CardHeader>
-            <CardTitle>Recent Clients</CardTitle>
+            <CardTitle className="text-primary">Recent Clients</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">Coming soon</p>
@@ -112,9 +112,9 @@ export default async function AdminDashboard() {
         </Card>
 
         {/* Quick Actions Placeholder */}
-        <Card className="col-span-full lg:col-span-3">
+        <Card className="col-span-full lg:col-span-3 border-primary">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="text-primary">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">Coming soon</p>

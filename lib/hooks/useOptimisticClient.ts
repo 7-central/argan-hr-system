@@ -71,6 +71,15 @@ function optimisticClientReducer(
         contractRenewalDate: clientData.contractRenewalDate || null,
         welcomeEmailSent: false,
         externalAudit: false,
+        paymentMethod: null,
+        directDebitSetup: false,
+        directDebitConfirmed: false,
+        contractAddedToXero: false,
+        recurringInvoiceSetup: false,
+        dpaSignedGdpr: false,
+        firstInvoiceSent: false,
+        firstPaymentMade: false,
+        lastPriceIncrease: null,
         _optimistic: true,
         _pending: true,
         _error: null,
@@ -101,9 +110,11 @@ function optimisticClientReducer(
       const deleteData = action.client as { id: number };
       return state.map((client) => {
         if (client.id === deleteData.id) {
+          // Toggle status: ACTIVE -> INACTIVE, INACTIVE -> ACTIVE
+          const newStatus = client.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
           return {
             ...client,
-            status: 'INACTIVE' as const,
+            status: newStatus as 'ACTIVE' | 'INACTIVE',
             _optimistic: true,
             _pending: true,
             _error: null,
@@ -272,14 +283,15 @@ export function useOptimisticClient(initialClients: Client[]) {
   );
 
   /**
-   * Delete a client with optimistic updates (soft delete)
+   * Delete a client with optimistic updates (soft delete/status change)
    * Shows immediate feedback, then handles server response
    *
    * @param id - Client ID to delete
+   * @param targetStatus - Optional target status (PENDING or INACTIVE) for ACTIVE clients
    * @returns Promise with operation result
    */
   const deleteClientOptimistic = useCallback(
-    async (id: number): Promise<OptimisticClientResponse<Client>> => {
+    async (id: number, targetStatus?: 'PENDING' | 'INACTIVE'): Promise<OptimisticClientResponse<Client>> => {
       // Apply optimistic update immediately (soft delete)
       addOptimistic({
         type: 'DELETE',
@@ -288,11 +300,11 @@ export function useOptimisticClient(initialClients: Client[]) {
 
       try {
         // Call Server Action to delete client
-        const result = await deleteClientAction(id);
+        const result = await deleteClientAction(id, targetStatus);
 
         if (!result.success) {
           // Server error - rollback optimistic update
-          const errorMessage = result.error || 'Failed to delete client';
+          const errorMessage = result.error || 'Failed to update client status';
           throw new Error(errorMessage);
         }
 
