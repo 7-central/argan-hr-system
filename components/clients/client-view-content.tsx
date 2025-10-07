@@ -492,47 +492,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
         </TabsTrigger>
       </TabsList>
 
-      {/* Container for all tab content */}
-      <div className="relative">
-        {/* Edit/Save Button - Positioned absolutely to appear on all tabs */}
-        <div className="absolute top-4 right-4 z-10">
-          {editMode ? (
-            <button
-              onClick={handleSaveAll}
-              disabled={isSaving}
-              className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
-                isSaving
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-red-500 hover:text-green-500'
-              }`}
-              title={isSaving ? 'Saving...' : 'Save all changes'}
-            >
-              {isSaving ? (
-                <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Save className="h-8 w-8" />
-              )}
-            </button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
-              onClick={() => {
-                setEditMode(true);
-                const url = new URL(window.location.href);
-                url.searchParams.set('edit', 'true');
-                window.history.pushState({}, '', url);
-              }}
-              title="Edit client details"
-            >
-              <SquarePen className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+      {/* Edit/Save Button - Positioned absolutely to appear on all tabs */}
+      <div className="absolute top-6 right-4 z-10">
+        {editMode ? (
+          <button
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+              isSaving
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-red-500 hover:text-green-500'
+            }`}
+            title={isSaving ? 'Saving...' : 'Save all changes'}
+          >
+            {isSaving ? (
+              <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Save className="h-8 w-8" />
+            )}
+          </button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+            onClick={() => {
+              setEditMode(true);
+              const url = new URL(window.location.href);
+              url.searchParams.set('edit', 'true');
+              window.history.pushState({}, '', url);
+            }}
+            title="Edit client details"
+          >
+            <SquarePen className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
       {/* Company & Tier */}
-      <TabsContent value="company" className="mt-6">
+      <TabsContent value="company" className="mt-6 relative">
         <Card className="border-0 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -681,7 +679,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       </TabsContent>
 
       {/* Contacts */}
-      <TabsContent value="contacts" className="mt-6">
+      <TabsContent value="contacts" className="mt-6 relative">
         <Card className="border-0 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -705,7 +703,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       </TabsContent>
 
       {/* Address */}
-      <TabsContent value="address" className="mt-6">
+      <TabsContent value="address" className="mt-6 relative">
         <Card className="border-0 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -805,7 +803,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       </TabsContent>
 
       {/* External Auditing */}
-      <TabsContent value="auditing" className="mt-6">
+      <TabsContent value="auditing" className="mt-6 relative">
         <Card className="border-0 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -918,7 +916,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
 
       {/* Payment */}
       {client.paymentMethod && (
-        <TabsContent value="payment" className="mt-6">
+        <TabsContent value="payment" className="mt-6 relative">
           <Card className="border-0 shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -1101,7 +1099,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       )}
 
       {/* Contract and Service */}
-      <TabsContent value="contract-service" className="mt-6">
+      <TabsContent value="contract-service" className="mt-6 relative">
         {activeContract ? (
           <Card className="border-0 shadow-none">
             <CardHeader>
@@ -1509,7 +1507,6 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
           </Card>
         )}
       </TabsContent>
-      </div> {/* End of bordered container */}
     </Tabs>
   );
 }
