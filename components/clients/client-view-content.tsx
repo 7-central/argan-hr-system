@@ -468,66 +468,69 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
   }, [initialEditMode]);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-[80%] mx-auto grid-cols-6 h-auto mb-6">
-        <TabsTrigger key="company" value="company" className="data-[state=active]:text-primary">
-          Company & Tier
-        </TabsTrigger>
-        <TabsTrigger key="contacts" value="contacts" className="data-[state=active]:text-primary">
-          Contacts
-        </TabsTrigger>
-        <TabsTrigger key="address" value="address" className="data-[state=active]:text-primary">
-          Address
-        </TabsTrigger>
-        <TabsTrigger key="auditing" value="auditing" className="data-[state=active]:text-primary">
-          External Auditing
-        </TabsTrigger>
-        {client.paymentMethod && (
-          <TabsTrigger key="payment" value="payment" className="data-[state=active]:text-primary">
-            Payment
-          </TabsTrigger>
-        )}
-        <TabsTrigger key="contract-service" value="contract-service" className="data-[state=active]:text-primary">
-          Contract and Service
-        </TabsTrigger>
-      </TabsList>
-
-      {/* Edit/Save Button - Positioned absolutely to appear on all tabs */}
-      <div className="absolute top-6 right-4 z-10">
-        {editMode ? (
-          <button
-            onClick={handleSaveAll}
-            disabled={isSaving}
-            className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
-              isSaving
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-red-500 hover:text-green-500'
-            }`}
-            title={isSaving ? 'Saving...' : 'Save all changes'}
-          >
-            {isSaving ? (
-              <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Save className="h-8 w-8" />
+    <div className="relative w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="relative mb-6">
+          <TabsList className="grid max-w-5xl mx-auto grid-cols-6 h-auto w-full">
+            <TabsTrigger key="company" value="company" className="data-[state=active]:text-primary">
+              Company & Tier
+            </TabsTrigger>
+            <TabsTrigger key="contacts" value="contacts" className="data-[state=active]:text-primary">
+              Contacts
+            </TabsTrigger>
+            <TabsTrigger key="address" value="address" className="data-[state=active]:text-primary">
+              Address
+            </TabsTrigger>
+            <TabsTrigger key="auditing" value="auditing" className="data-[state=active]:text-primary">
+              External Auditing
+            </TabsTrigger>
+            {client.paymentMethod && (
+              <TabsTrigger key="payment" value="payment" className="data-[state=active]:text-primary">
+                Payment
+              </TabsTrigger>
             )}
-          </button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
-            onClick={() => {
-              setEditMode(true);
-              const url = new URL(window.location.href);
-              url.searchParams.set('edit', 'true');
-              window.history.pushState({}, '', url);
-            }}
-            title="Edit client details"
-          >
-            <SquarePen className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+            <TabsTrigger key="contract-service" value="contract-service" className="data-[state=active]:text-primary">
+              Contract and Service
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Edit/Save Button - Positioned absolutely to appear on all tabs */}
+        <div className="absolute top-6 right-4 z-10">
+          {editMode ? (
+            <button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                isSaving
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-red-500 hover:text-green-500'
+              }`}
+              title={isSaving ? 'Saving...' : 'Save all changes'}
+            >
+              {isSaving ? (
+                <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Save className="h-8 w-8" />
+              )}
+            </button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+              onClick={() => {
+                setEditMode(true);
+                const url = new URL(window.location.href);
+                url.searchParams.set('edit', 'true');
+                window.history.pushState({}, '', url);
+              }}
+              title="Edit client details"
+            >
+              <SquarePen className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
       {/* Company & Tier */}
       <TabsContent value="company" className="mt-6 relative">
@@ -1507,6 +1510,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
           </Card>
         )}
       </TabsContent>
-    </Tabs>
+      </Tabs>
+    </div>
   );
 }
