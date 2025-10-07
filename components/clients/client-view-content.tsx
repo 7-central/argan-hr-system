@@ -463,46 +463,6 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
     }
   };
 
-  // Check if there are unsaved changes
-  const hasUnsavedChanges =
-    companyName !== client.companyName ||
-    businessId !== (client.businessId || '') ||
-    sector !== (client.sector || '') ||
-    serviceTier !== client.serviceTier ||
-    monthlyRetainer !== (client.monthlyRetainer ? client.monthlyRetainer.toString() : '') ||
-    status !== client.status ||
-    addressLine1 !== (client.addressLine1 || '') ||
-    addressLine2 !== (client.addressLine2 || '') ||
-    city !== (client.city || '') ||
-    postcode !== (client.postcode || '') ||
-    country !== (client.country || '') ||
-    externalAudit !== client.externalAudit ||
-    paymentMethod !== (client.paymentMethod || '') ||
-    directDebitSetup !== (client.directDebitSetup || false) ||
-    directDebitConfirmed !== (client.directDebitConfirmed || false) ||
-    contractAddedToXero !== client.contractAddedToXero ||
-    recurringInvoiceSetup !== (client.recurringInvoiceSetup || false) ||
-    dpaSignedGdpr !== client.dpaSignedGdpr ||
-    firstInvoiceSent !== client.firstInvoiceSent ||
-    firstPaymentMade !== client.firstPaymentMade ||
-    lastPriceIncrease !== (client.lastPriceIncrease ? new Date(client.lastPriceIncrease).toISOString().split('T')[0] : '') ||
-    (activeContract && (
-      contractStartDate !== new Date(activeContract.contractStartDate).toISOString().split('T')[0] ||
-      contractRenewalDate !== new Date(activeContract.contractRenewalDate).toISOString().split('T')[0] ||
-      hrAdminInclusiveHours !== (activeContract.hrAdminInclusiveHours ? activeContract.hrAdminInclusiveHours.toString() : '') ||
-      hrAdminInclusiveHoursPeriod !== activeContract.hrAdminInclusiveHoursPeriod ||
-      employmentLawInclusiveHours !== (activeContract.employmentLawInclusiveHours ? activeContract.employmentLawInclusiveHours.toString() : '') ||
-      employmentLawInclusiveHoursPeriod !== activeContract.employmentLawInclusiveHoursPeriod ||
-      hrAdminRate !== (activeContract.hrAdminRate ? Number(activeContract.hrAdminRate).toString() : '') ||
-      hrAdminRateUnit !== activeContract.hrAdminRateUnit ||
-      employmentLawRate !== (activeContract.employmentLawRate ? Number(activeContract.employmentLawRate).toString() : '') ||
-      employmentLawRateUnit !== activeContract.employmentLawRateUnit ||
-      mileageRate !== (activeContract.mileageRate ? Number(activeContract.mileageRate).toString() : '') ||
-      overnightRate !== (activeContract.overnightRate ? Number(activeContract.overnightRate).toString() : '') ||
-      JSON.stringify(inclusiveServicesInScope) !== JSON.stringify(activeContract.inclusiveServicesInScope) ||
-      JSON.stringify(inclusiveServicesOutOfScope) !== JSON.stringify(activeContract.inclusiveServicesOutOfScope)
-    ));
-
   useEffect(() => {
     setEditMode(initialEditMode);
   }, [initialEditMode]);
