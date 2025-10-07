@@ -4,6 +4,12 @@ import { useOptimistic, useCallback } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import {
+  createClient as createClientAction,
+  updateClient as updateClientAction,
+  deleteClient as deleteClientAction,
+} from '@/lib/actions/client.actions';
+
 import type { Client, CreateClientDto, UpdateClientDto } from '@/lib/types/client';
 
 /**
@@ -185,20 +191,11 @@ export function useOptimisticClient(initialClients: Client[]) {
       });
 
       try {
-        // Call API to create client
-        const response = await fetch('/api/clients', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
+        // Call Server Action to create client
+        const result = await createClientAction(data);
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
+        if (!result.success) {
           // Server error - rollback optimistic update
-          // Remove the optimistic client by filtering it out
           const errorMessage = result.error || 'Failed to create client';
           throw new Error(errorMessage);
         }
@@ -244,18 +241,10 @@ export function useOptimisticClient(initialClients: Client[]) {
       });
 
       try {
-        // Call API to update client
-        const response = await fetch(`/api/clients/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
+        // Call Server Action to update client
+        const result = await updateClientAction(id, data);
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
+        if (!result.success) {
           // Server error - rollback optimistic update
           const errorMessage = result.error || 'Failed to update client';
           throw new Error(errorMessage);
@@ -298,14 +287,10 @@ export function useOptimisticClient(initialClients: Client[]) {
       });
 
       try {
-        // Call API to delete client
-        const response = await fetch(`/api/clients/${id}`, {
-          method: 'DELETE',
-        });
+        // Call Server Action to delete client
+        const result = await deleteClientAction(id);
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
+        if (!result.success) {
           // Server error - rollback optimistic update
           const errorMessage = result.error || 'Failed to delete client';
           throw new Error(errorMessage);

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
+import { getOnboarding, updateOnboardingField } from '@/lib/actions/client.actions';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,6 +28,7 @@ interface OnboardingData {
     id: number;
     contractNumber: string;
     directDebitSetup: boolean;
+    directDebitConfirmed: boolean;
     signedContractReceived: boolean;
     contractUploaded: boolean;
     contractAddedToXero: boolean;
@@ -34,14 +37,6 @@ interface OnboardingData {
     firstInvoiceSent: boolean;
     firstPaymentMade: boolean;
     paymentTermsAgreed: boolean;
-    hrAdminRate: number | null;
-    hrAdminRateNotNeeded: boolean;
-    employmentLawRate: number | null;
-    employmentLawRateNotNeeded: boolean;
-    mileageRate: number | null;
-    mileageRateNotNeeded: boolean;
-    overnightRate: number | null;
-    overnightRateNotNeeded: boolean;
   } | null;
 }
 
@@ -64,10 +59,9 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${clientId}/onboarding`);
-      const result = await response.json();
+      const result = await getOnboarding(clientId);
 
-      if (!response.ok || !result.success) {
+      if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to fetch onboarding data');
       }
 
@@ -97,21 +91,9 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${clientId}/onboarding`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type,
-          field,
-          value,
-        }),
-      });
+      const result = await updateOnboardingField(clientId, type, field, value);
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
+      if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to update onboarding field');
       }
 
@@ -127,23 +109,26 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
   const calculateProgress = () => {
     if (!data) return { completed: 0, total: 0, percentage: 0 };
 
-    const clientFields = [data.client.welcomeEmailSent];
-    const contractFields = data.contract
+    // Client onboarding fields (includes some contract fields displayed in client section)
+    const clientFields = data.contract
       ? [
+          data.client.welcomeEmailSent,
           data.contract.directDebitSetup,
-          data.contract.signedContractReceived,
-          data.contract.contractUploaded,
+          data.contract.directDebitConfirmed,
           data.contract.contractAddedToXero,
-          data.contract.contractSentToClient,
           data.contract.dpaSignedGdpr,
           data.contract.firstInvoiceSent,
           data.contract.firstPaymentMade,
+        ]
+      : [data.client.welcomeEmailSent];
+
+    // Contract onboarding fields
+    const contractFields = data.contract
+      ? [
+          data.contract.signedContractReceived,
+          data.contract.contractUploaded,
+          data.contract.contractSentToClient,
           data.contract.paymentTermsAgreed,
-          // Rates are complete if they have a value OR are marked as not needed
-          data.contract.hrAdminRate !== null || data.contract.hrAdminRateNotNeeded,
-          data.contract.employmentLawRate !== null || data.contract.employmentLawRateNotNeeded,
-          data.contract.mileageRate !== null || data.contract.mileageRateNotNeeded,
-          data.contract.overnightRate !== null || data.contract.overnightRateNotNeeded,
         ]
       : [];
 
@@ -223,22 +208,9 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                       Welcome email sent
                     </Label>
                   </div>
-                </div>
-              </div>
 
-              {/* Contract Onboarding */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <h3 className="font-semibold">Contract Onboarding</h3>
-                </div>
-
-                {data.contract ? (
-                  <>
-                    <p className="text-xs text-muted-foreground">
-                      Contract: {data.contract.contractNumber}
-                    </p>
-                    <div className="space-y-3">
+                  {data.contract && (
+                    <>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="directDebitSetup"
@@ -258,35 +230,18 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
 
                       <div className="flex items-center space-x-2">
                         <Checkbox
-                          id="signedContractReceived"
-                          checked={data.contract.signedContractReceived}
+                          id="directDebitConfirmed"
+                          checked={data.contract.directDebitConfirmed}
                           onCheckedChange={(checked) =>
-                            updateField('contract', 'signedContractReceived', checked === true)
+                            updateField('contract', 'directDebitConfirmed', checked === true)
                           }
                           disabled={saving}
                         />
                         <Label
-                          htmlFor="signedContractReceived"
+                          htmlFor="directDebitConfirmed"
                           className="text-sm font-normal cursor-pointer"
                         >
-                          Signed contract received
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="contractUploaded"
-                          checked={data.contract.contractUploaded}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'contractUploaded', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="contractUploaded"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          Contract uploaded
+                          Direct debit confirmed
                         </Label>
                       </div>
 
@@ -304,23 +259,6 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                           className="text-sm font-normal cursor-pointer"
                         >
                           Added to Xero
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="contractSentToClient"
-                          checked={data.contract.contractSentToClient}
-                          onCheckedChange={(checked) =>
-                            updateField('contract', 'contractSentToClient', checked === true)
-                          }
-                          disabled={saving}
-                        />
-                        <Label
-                          htmlFor="contractSentToClient"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          Contract sent to client
                         </Label>
                       </div>
 
@@ -374,6 +312,74 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                           First payment made
                         </Label>
                       </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Contract Onboarding */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold">Contract Onboarding</h3>
+                </div>
+
+                {data.contract ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Contract: {data.contract.contractNumber}
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="signedContractReceived"
+                          checked={data.contract.signedContractReceived}
+                          onCheckedChange={(checked) =>
+                            updateField('contract', 'signedContractReceived', checked === true)
+                          }
+                          disabled={saving}
+                        />
+                        <Label
+                          htmlFor="signedContractReceived"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Signed contract received
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="contractUploaded"
+                          checked={data.contract.contractUploaded}
+                          onCheckedChange={(checked) =>
+                            updateField('contract', 'contractUploaded', checked === true)
+                          }
+                          disabled={saving}
+                        />
+                        <Label
+                          htmlFor="contractUploaded"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Contract uploaded
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="contractSentToClient"
+                          checked={data.contract.contractSentToClient}
+                          onCheckedChange={(checked) =>
+                            updateField('contract', 'contractSentToClient', checked === true)
+                          }
+                          disabled={saving}
+                        />
+                        <Label
+                          htmlFor="contractSentToClient"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Contract sent to client
+                        </Label>
+                      </div>
 
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -390,119 +396,6 @@ export function OnboardingModal({ clientId, open, onOpenChange }: OnboardingModa
                         >
                           Payment terms agreed
                         </Label>
-                      </div>
-
-                      {/* Out of Scope Rates */}
-                      <div className="pt-3 border-t">
-                        <p className="text-xs font-semibold text-muted-foreground mb-3">Out of Scope Rates</p>
-
-                        {/* HR Admin Rate */}
-                        <div className="space-y-1 mb-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">
-                              HR Admin Rate: {data.contract.hrAdminRate !== null ? `£${Number(data.contract.hrAdminRate).toFixed(2)}` : '-'}
-                            </span>
-                            {data.contract.hrAdminRate === null && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="hrAdminRateNotNeeded"
-                                  checked={data.contract.hrAdminRateNotNeeded}
-                                  onCheckedChange={(checked) =>
-                                    updateField('contract', 'hrAdminRateNotNeeded', checked === true)
-                                  }
-                                  disabled={saving}
-                                />
-                                <Label
-                                  htmlFor="hrAdminRateNotNeeded"
-                                  className="text-xs font-normal cursor-pointer text-muted-foreground"
-                                >
-                                  Not needed
-                                </Label>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Employment Law Rate */}
-                        <div className="space-y-1 mb-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">
-                              Employment Law Rate: {data.contract.employmentLawRate !== null ? `£${Number(data.contract.employmentLawRate).toFixed(2)}` : '-'}
-                            </span>
-                            {data.contract.employmentLawRate === null && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="employmentLawRateNotNeeded"
-                                  checked={data.contract.employmentLawRateNotNeeded}
-                                  onCheckedChange={(checked) =>
-                                    updateField('contract', 'employmentLawRateNotNeeded', checked === true)
-                                  }
-                                  disabled={saving}
-                                />
-                                <Label
-                                  htmlFor="employmentLawRateNotNeeded"
-                                  className="text-xs font-normal cursor-pointer text-muted-foreground"
-                                >
-                                  Not needed
-                                </Label>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Mileage Rate */}
-                        <div className="space-y-1 mb-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">
-                              Mileage Rate: {data.contract.mileageRate !== null ? `£${Number(data.contract.mileageRate).toFixed(2)}` : '-'}
-                            </span>
-                            {data.contract.mileageRate === null && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="mileageRateNotNeeded"
-                                  checked={data.contract.mileageRateNotNeeded}
-                                  onCheckedChange={(checked) =>
-                                    updateField('contract', 'mileageRateNotNeeded', checked === true)
-                                  }
-                                  disabled={saving}
-                                />
-                                <Label
-                                  htmlFor="mileageRateNotNeeded"
-                                  className="text-xs font-normal cursor-pointer text-muted-foreground"
-                                >
-                                  Not needed
-                                </Label>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Overnight Rate */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">
-                              Overnight Rate: {data.contract.overnightRate !== null ? `£${Number(data.contract.overnightRate).toFixed(2)}` : '-'}
-                            </span>
-                            {data.contract.overnightRate === null && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="overnightRateNotNeeded"
-                                  checked={data.contract.overnightRateNotNeeded}
-                                  onCheckedChange={(checked) =>
-                                    updateField('contract', 'overnightRateNotNeeded', checked === true)
-                                  }
-                                  disabled={saving}
-                                />
-                                <Label
-                                  htmlFor="overnightRateNotNeeded"
-                                  className="text-xs font-normal cursor-pointer text-muted-foreground"
-                                >
-                                  Not needed
-                                </Label>
-                              </div>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </>

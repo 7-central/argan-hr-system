@@ -1,10 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
-import { useRouter } from 'next/navigation';
-
-import { Calendar, CreditCard, SquarePen, PoundSterling } from 'lucide-react';
+import { Calendar, CreditCard, SquarePen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,40 +38,7 @@ interface ContractInfoContentProps {
   formatDate: (date: Date | string | null) => string;
 }
 
-export function ContractInfoContent({ contract, clientId, formatDate }: ContractInfoContentProps) {
-  const router = useRouter();
-  const [updating, setUpdating] = useState(false);
-
-  const toggleRateNotNeeded = async (field: string, currentValue: boolean) => {
-    if (!contract) return;
-
-    setUpdating(true);
-    try {
-      const response = await fetch(`/api/clients/${clientId}/onboarding`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'contract',
-          field,
-          value: !currentValue,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update rate');
-      }
-
-      // Refresh the page data
-      router.refresh();
-    } catch (error) {
-      console.error('Error updating rate:', error);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
+export function ContractInfoContent({ contract, clientId: _clientId, formatDate }: ContractInfoContentProps) {
   if (!contract) {
     return (
       <Card>
@@ -234,113 +197,41 @@ export function ContractInfoContent({ contract, clientId, formatDate }: Contract
             {/* HR Admin Rate */}
             <div>
               <p className="text-sm font-medium text-muted-foreground">HR Admin Rate</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-lg">
-                  {contract.hrAdminRate !== null
-                    ? `£${contract.hrAdminRate} ${contract.hrAdminRateUnit === 'HOURLY' ? 'per hour' : 'per day'}`
-                    : contract.hrAdminRateNotNeeded
-                    ? 'Not needed'
-                    : '-'}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-6 w-6 ${
-                    contract.hrAdminRate !== null || contract.hrAdminRateNotNeeded
-                      ? 'text-green-600 hover:text-green-700'
-                      : 'text-gray-400 hover:text-gray-500'
-                  } transition-colors`}
-                  onClick={() => toggleRateNotNeeded('hrAdminRateNotNeeded', contract.hrAdminRateNotNeeded)}
-                  disabled={updating || contract.hrAdminRate !== null}
-                  title={contract.hrAdminRate !== null ? 'Rate is set' : contract.hrAdminRateNotNeeded ? 'Mark as needed' : 'Mark as not needed'}
-                >
-                  <PoundSterling className="h-4 w-4" />
-                </Button>
-              </div>
+              <p className="text-lg mt-1">
+                {contract.hrAdminRate !== null
+                  ? `£${contract.hrAdminRate} ${contract.hrAdminRateUnit === 'HOURLY' ? 'per hour' : 'per day'}`
+                  : '-'}
+              </p>
             </div>
 
             {/* Employment Law Rate */}
             <div>
               <p className="text-sm font-medium text-muted-foreground">Employment Law Rate</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-lg">
-                  {contract.employmentLawRate !== null
-                    ? `£${contract.employmentLawRate} ${contract.employmentLawRateUnit === 'HOURLY' ? 'per hour' : 'per day'}`
-                    : contract.employmentLawRateNotNeeded
-                    ? 'Not needed'
-                    : '-'}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-6 w-6 ${
-                    contract.employmentLawRate !== null || contract.employmentLawRateNotNeeded
-                      ? 'text-green-600 hover:text-green-700'
-                      : 'text-gray-400 hover:text-gray-500'
-                  } transition-colors`}
-                  onClick={() => toggleRateNotNeeded('employmentLawRateNotNeeded', contract.employmentLawRateNotNeeded)}
-                  disabled={updating || contract.employmentLawRate !== null}
-                  title={contract.employmentLawRate !== null ? 'Rate is set' : contract.employmentLawRateNotNeeded ? 'Mark as needed' : 'Mark as not needed'}
-                >
-                  <PoundSterling className="h-4 w-4" />
-                </Button>
-              </div>
+              <p className="text-lg mt-1">
+                {contract.employmentLawRate !== null
+                  ? `£${contract.employmentLawRate} ${contract.employmentLawRateUnit === 'HOURLY' ? 'per hour' : 'per day'}`
+                  : '-'}
+              </p>
             </div>
 
             {/* Mileage Rate */}
             <div>
               <p className="text-sm font-medium text-muted-foreground">Mileage Rate</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-lg">
-                  {contract.mileageRate !== null
-                    ? `£${contract.mileageRate} per mile`
-                    : contract.mileageRateNotNeeded
-                    ? 'Not needed'
-                    : '-'}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-6 w-6 ${
-                    contract.mileageRate !== null || contract.mileageRateNotNeeded
-                      ? 'text-green-600 hover:text-green-700'
-                      : 'text-gray-400 hover:text-gray-500'
-                  } transition-colors`}
-                  onClick={() => toggleRateNotNeeded('mileageRateNotNeeded', contract.mileageRateNotNeeded)}
-                  disabled={updating || contract.mileageRate !== null}
-                  title={contract.mileageRate !== null ? 'Rate is set' : contract.mileageRateNotNeeded ? 'Mark as needed' : 'Mark as not needed'}
-                >
-                  <PoundSterling className="h-4 w-4" />
-                </Button>
-              </div>
+              <p className="text-lg mt-1">
+                {contract.mileageRate !== null
+                  ? `£${contract.mileageRate} per mile`
+                  : '-'}
+              </p>
             </div>
 
             {/* Overnight Rate */}
             <div>
               <p className="text-sm font-medium text-muted-foreground">Overnight Rate</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-lg">
-                  {contract.overnightRate !== null
-                    ? `£${contract.overnightRate} per night`
-                    : contract.overnightRateNotNeeded
-                    ? 'Not needed'
-                    : '-'}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-6 w-6 ${
-                    contract.overnightRate !== null || contract.overnightRateNotNeeded
-                      ? 'text-green-600 hover:text-green-700'
-                      : 'text-gray-400 hover:text-gray-500'
-                  } transition-colors`}
-                  onClick={() => toggleRateNotNeeded('overnightRateNotNeeded', contract.overnightRateNotNeeded)}
-                  disabled={updating || contract.overnightRate !== null}
-                  title={contract.overnightRate !== null ? 'Rate is set' : contract.overnightRateNotNeeded ? 'Mark as needed' : 'Mark as not needed'}
-                >
-                  <PoundSterling className="h-4 w-4" />
-                </Button>
-              </div>
+              <p className="text-lg mt-1">
+                {contract.overnightRate !== null
+                  ? `£${contract.overnightRate} per night`
+                  : '-'}
+              </p>
             </div>
           </div>
         </CardContent>
