@@ -168,6 +168,23 @@ const formatAuditInterval = (interval: string): string => {
     .join(' ');
 };
 
+const formatContractStatus = (status: string): string => {
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};
+
+const getContractStatusColor = (status: string): string => {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'bg-green-500';
+    case 'draft':
+      return 'bg-yellow-500';
+    case 'archived':
+      return 'bg-red-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
+
 export function ClientViewContent({ client, editMode: initialEditMode, initialTab }: ClientViewContentProps) {
   const router = useRouter();
   const [editMode, setEditMode] = useState(initialEditMode);
@@ -1144,7 +1161,10 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
 
                     <div key="contract-status" className="space-y-2">
                       <p className="text-sm font-medium text-muted-foreground">Contract Status</p>
-                      <p className="text-base">{activeContract.status}</p>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${getContractStatusColor(activeContract.status)}`} />
+                        <p className="text-base">{formatContractStatus(activeContract.status)}</p>
+                      </div>
                     </div>
 
                     <div key="contract-start-date" className="space-y-2">
