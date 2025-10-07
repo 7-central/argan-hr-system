@@ -469,7 +469,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-[80%] mx-auto grid-cols-6 h-auto mb-6 translate-y-5">
+      <TabsList className="grid w-[80%] mx-auto grid-cols-6 h-auto mb-6">
         <TabsTrigger key="company" value="company" className="data-[state=active]:text-primary">
           Company & Tier
         </TabsTrigger>
