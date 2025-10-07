@@ -28,10 +28,10 @@ export function ClientPageWrapper({ clients, search }: ClientPageWrapperProps) {
 
   /**
    * Handle client edit navigation
-   * Navigate to edit page for the selected client
+   * Navigate to client view in edit mode
    */
   const handleEdit = (client: Client) => {
-    router.push(`/admin/clients/${client.id}/edit`);
+    router.push(`/admin/clients/${client.id}?edit=true`);
   };
 
   /**

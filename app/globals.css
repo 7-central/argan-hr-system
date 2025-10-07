@@ -41,6 +41,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --animate-aurora: aurora 60s linear infinite;
 }
 
 :root {
@@ -146,5 +148,14 @@
   h5,
   h6 {
     @apply font-[family-name:var(--font-display)] font-bold;
+  }
+}
+
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
   }
 }

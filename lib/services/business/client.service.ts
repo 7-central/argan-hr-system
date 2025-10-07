@@ -107,6 +107,15 @@ export class ClientService {
           status: true,
           welcomeEmailSent: true,
           externalAudit: true,
+          paymentMethod: true,
+          directDebitSetup: true,
+          directDebitConfirmed: true,
+          contractAddedToXero: true,
+          recurringInvoiceSetup: true,
+          dpaSignedGdpr: true,
+          firstInvoiceSent: true,
+          firstPaymentMade: true,
+          lastPriceIncrease: true,
           createdBy: true,
           createdAt: true,
           updatedAt: true,
@@ -148,13 +157,9 @@ export class ClientService {
           },
         },
         contracts: {
-          where: {
-            status: 'ACTIVE',
-          },
           orderBy: {
             createdAt: 'desc',
           },
-          take: 1, // Get most recent active contract
         },
         audits: {
           orderBy: {
@@ -201,6 +206,25 @@ export class ClientService {
 
     // Create client and contacts in a transaction
     const client = await this.db.$transaction(async (tx) => {
+      // Conditional payment method onboarding fields
+      // Set to null (N/A) for irrelevant payment methods, false (pending) for relevant ones
+      let directDebitSetup: boolean | null = null;
+      let directDebitConfirmed: boolean | null = null;
+      let recurringInvoiceSetup: boolean | null = null;
+
+      if (data.paymentMethod === 'DIRECT_DEBIT') {
+        // Direct Debit selected - set DD fields to false (pending), Invoice to null (N/A)
+        directDebitSetup = false;
+        directDebitConfirmed = false;
+        recurringInvoiceSetup = null;
+      } else if (data.paymentMethod === 'INVOICE') {
+        // Invoice selected - set Invoice fields to false (pending), DD to null (N/A)
+        directDebitSetup = null;
+        directDebitConfirmed = null;
+        recurringInvoiceSetup = false;
+      }
+      // If paymentMethod is null/undefined, all remain null (N/A)
+
       // Create the client
       const newClient = await tx.client.create({
         data: {
@@ -221,6 +245,11 @@ export class ClientService {
           contractRenewalDate: data.contractRenewalDate || null,
           status: data.status || 'ACTIVE',
           externalAudit: data.externalAudit || false,
+          paymentMethod: data.paymentMethod || null,
+          // Conditional payment onboarding fields based on payment method
+          directDebitSetup,
+          directDebitConfirmed,
+          recurringInvoiceSetup,
         },
       });
 
@@ -264,17 +293,62 @@ export class ClientService {
         });
       }
 
-      // Create client audit record if external audit is enabled
-      if (data.externalAudit && data.auditedBy && data.auditInterval && data.nextAuditDate) {
-        await tx.clientAudit.create({
-          data: {
-            clientId: newClient.id,
-            auditedBy: data.auditedBy,
-            interval: data.auditInterval,
-            nextAuditDate: data.nextAuditDate,
-          },
-        });
+      // Create client audit records if external audit is enabled
+      if (data.externalAudit) {
+        // Use new auditRecords array if provided, otherwise fall back to legacy single audit fields
+        if (data.auditRecords && data.auditRecords.length > 0) {
+          for (const auditRecord of data.auditRecords) {
+            await tx.clientAudit.create({
+              data: {
+                clientId: newClient.id,
+                auditedBy: auditRecord.auditedBy,
+                interval: auditRecord.auditInterval,
+                nextAuditDate: auditRecord.nextAuditDate,
+              },
+            });
+          }
+        } else if (data.auditedBy && data.auditInterval && data.nextAuditDate) {
+          // Legacy single audit record support
+          await tx.clientAudit.create({
+            data: {
+              clientId: newClient.id,
+              auditedBy: data.auditedBy,
+              interval: data.auditInterval,
+              nextAuditDate: data.nextAuditDate,
+            },
+          });
+        }
       }
+
+      // Create contract record with service agreement details
+      // Generate contract number and version (this is the first contract, so version = 1)
+      const year = new Date().getFullYear();
+      const contractNumber = `CON-${newClient.id}-${year}-001`;
+      const version = 1; // First contract is always version 1
+
+      await tx.contract.create({
+        data: {
+          clientId: newClient.id,
+          contractNumber,
+          version,
+          contractStartDate: data.contractStartDate || new Date(),
+          contractRenewalDate: data.contractRenewalDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          status: 'ACTIVE',
+          // Onboarding fields - all default to false via Prisma schema
+          // Service Agreement - In Scope
+          hrAdminInclusiveHours: data.hrAdminInclusiveHours || null,
+          employmentLawInclusiveHours: data.employmentLawInclusiveHours || null,
+          inclusiveServicesInScope: data.inclusiveServicesInScope || [],
+          // Service Agreement - Out of Scope
+          inclusiveServicesOutOfScope: data.inclusiveServicesOutOfScope || [],
+          hrAdminRate: data.hrAdminRate || null,
+          hrAdminRateUnit: data.hrAdminRateUnit || null,
+          employmentLawRate: data.employmentLawRate || null,
+          employmentLawRateUnit: data.employmentLawRateUnit || null,
+          mileageRate: data.mileageRate || null,
+          overnightRate: data.overnightRate || null,
+        },
+      });
 
       return newClient;
     });
@@ -357,9 +431,11 @@ export class ClientService {
   }
 
   /**
-   * Soft delete a client
+   * Toggle client status (deactivate ACTIVE clients, reactivate INACTIVE/PENDING clients)
+   * @param id - Client ID
+   * @param targetStatus - Optional target status for ACTIVE clients (PENDING or INACTIVE)
    */
-  async deleteClient(id: number): Promise<Client> {
+  async deleteClient(id: number, targetStatus?: 'PENDING' | 'INACTIVE'): Promise<Client> {
     // Validate ID
     if (!id || id < 1) {
       throw new ValidationError('Invalid client ID');
@@ -374,11 +450,20 @@ export class ClientService {
       throw new ClientNotFoundError(id);
     }
 
-    // Soft delete by setting status to INACTIVE
+    // Determine new status
+    let newStatus: 'ACTIVE' | 'PENDING' | 'INACTIVE';
+    if (existingClient.status === 'ACTIVE') {
+      // ACTIVE client being deactivated - use targetStatus if provided, default to INACTIVE
+      newStatus = targetStatus || 'INACTIVE';
+    } else {
+      // PENDING or INACTIVE client being activated
+      newStatus = 'ACTIVE';
+    }
+
     const client = await this.db.client.update({
       where: { id },
       data: {
-        status: 'INACTIVE',
+        status: newStatus,
       },
     });
 

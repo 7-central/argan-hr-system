@@ -29,9 +29,10 @@ export function UsersPageClient({ isSuperAdmin: canManageAdmins }: UsersPageClie
         disabled={!canManageAdmins}
         title={!canManageAdmins ? 'Only SUPER_ADMIN and ADMIN can add users' : ''}
         onClick={() => setCreateDialogOpen(true)}
+        className="w-[180px]"
       >
         <UserPlus className="mr-2 h-4 w-4" />
-        Add Admin
+        Add New Admin
       </Button>
 
       {/* Create Admin Dialog */}

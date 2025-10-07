@@ -58,7 +58,7 @@ export default async function ClientsPage({
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Clients</h1>
           <Link href="/admin/clients/new">
-            <Button>
+            <Button className="w-[180px]">
               <Plus className="mr-2 h-4 w-4" />
               Add New Client
             </Button>

@@ -130,10 +130,11 @@ export const updateClient = withAuth(
 export const deleteClient = withAuth(
   async (
     _session,
-    id: number
+    id: number,
+    targetStatus?: 'PENDING' | 'INACTIVE'
   ): Promise<{ success: boolean; data?: Client; error?: string }> => {
     try {
-      const client = await clientService.deleteClient(id);
+      const client = await clientService.deleteClient(id, targetStatus);
 
       // Convert Decimal to number for client serialization
       const serializedClient = {
@@ -157,7 +158,7 @@ export const deleteClient = withAuth(
       // Handle unexpected errors
       return {
         success: false,
-        error: 'An unexpected error occurred while deleting the client',
+        error: 'An unexpected error occurred while updating the client status',
       };
     }
   }
@@ -173,26 +174,52 @@ export const getOnboarding = withAuth(
   ): Promise<{
     success: boolean;
     data?: {
-      client: { id: number; companyName: string; welcomeEmailSent: boolean };
-      contract: {
+      client: {
         id: number;
-        contractNumber: string;
-        directDebitSetup: boolean;
-        directDebitConfirmed: boolean;
-        signedContractReceived: boolean;
-        contractUploaded: boolean;
+        companyName: string;
+        welcomeEmailSent: boolean;
+        paymentMethod: string | null;
+        directDebitSetup: boolean | null;
+        directDebitConfirmed: boolean | null;
         contractAddedToXero: boolean;
-        contractSentToClient: boolean;
+        recurringInvoiceSetup: boolean | null;
         dpaSignedGdpr: boolean;
         firstInvoiceSent: boolean;
         firstPaymentMade: boolean;
+      };
+      contract: {
+        id: number;
+        contractNumber: string;
+        signedContractReceived: boolean;
+        contractUploaded: boolean;
+        contractSentToClient: boolean;
         paymentTermsAgreed: boolean;
+        outOfScopeRateAgreed: boolean;
       } | null;
     };
     error?: string;
   }> => {
     try {
-      const client = await clientService.getClientById(clientId);
+      // Get client with payment fields (now on client, not contract)
+      const { getDatabaseInstance } = await import('@/lib/database');
+      const db = getDatabaseInstance();
+
+      const client = await db.client.findUnique({
+        where: { id: clientId },
+        select: {
+          id: true,
+          companyName: true,
+          welcomeEmailSent: true,
+          paymentMethod: true,
+          directDebitSetup: true,
+          directDebitConfirmed: true,
+          contractAddedToXero: true,
+          recurringInvoiceSetup: true,
+          dpaSignedGdpr: true,
+          firstInvoiceSent: true,
+          firstPaymentMade: true,
+        },
+      });
 
       if (!client) {
         return {
@@ -201,11 +228,7 @@ export const getOnboarding = withAuth(
         };
       }
 
-      // Get active contract - for now we'll use a direct DB query
-      // TODO: Move this to a proper service method
-      const { getDatabaseInstance } = await import('@/lib/database');
-      const db = getDatabaseInstance();
-
+      // Get active contract - only contract-specific fields
       const contracts = await db.contract.findMany({
         where: {
           clientId,
@@ -214,16 +237,11 @@ export const getOnboarding = withAuth(
         select: {
           id: true,
           contractNumber: true,
-          directDebitSetup: true,
-          directDebitConfirmed: true,
           signedContractReceived: true,
           contractUploaded: true,
-          contractAddedToXero: true,
           contractSentToClient: true,
-          dpaSignedGdpr: true,
-          firstInvoiceSent: true,
-          firstPaymentMade: true,
           paymentTermsAgreed: true,
+          outOfScopeRateAgreed: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -234,11 +252,7 @@ export const getOnboarding = withAuth(
       return {
         success: true,
         data: {
-          client: {
-            id: client.id,
-            companyName: client.companyName,
-            welcomeEmailSent: client.welcomeEmailSent,
-          },
+          client,
           contract: contracts[0] || null,
         },
       };
@@ -264,20 +278,27 @@ export const updateOnboardingField = withAuth(
   ): Promise<{
     success: boolean;
     data?: {
-      client: { id: number; companyName: string; welcomeEmailSent: boolean };
-      contract: {
+      client: {
         id: number;
-        contractNumber: string;
-        directDebitSetup: boolean;
-        directDebitConfirmed: boolean;
-        signedContractReceived: boolean;
-        contractUploaded: boolean;
+        companyName: string;
+        welcomeEmailSent: boolean;
+        paymentMethod: string | null;
+        directDebitSetup: boolean | null;
+        directDebitConfirmed: boolean | null;
         contractAddedToXero: boolean;
-        contractSentToClient: boolean;
+        recurringInvoiceSetup: boolean | null;
         dpaSignedGdpr: boolean;
         firstInvoiceSent: boolean;
         firstPaymentMade: boolean;
+      };
+      contract: {
+        id: number;
+        contractNumber: string;
+        signedContractReceived: boolean;
+        contractUploaded: boolean;
+        contractSentToClient: boolean;
         paymentTermsAgreed: boolean;
+        outOfScopeRateAgreed: boolean;
       } | null;
     };
     error?: string;
@@ -288,8 +309,19 @@ export const updateOnboardingField = withAuth(
       const db = getDatabaseInstance();
 
       if (type === 'client') {
-        // Validate field
-        if (field !== 'welcomeEmailSent') {
+        // Validate field - now includes payment infrastructure fields
+        const validClientFields = [
+          'welcomeEmailSent',
+          'directDebitSetup',
+          'directDebitConfirmed',
+          'contractAddedToXero',
+          'recurringInvoiceSetup',
+          'dpaSignedGdpr',
+          'firstInvoiceSent',
+          'firstPaymentMade',
+        ];
+
+        if (!validClientFields.includes(field)) {
           return {
             success: false,
             error: 'Invalid client field',
@@ -299,21 +331,16 @@ export const updateOnboardingField = withAuth(
         // Update client field
         await db.client.update({
           where: { id: clientId },
-          data: { welcomeEmailSent: value },
+          data: { [field]: value },
         });
       } else if (type === 'contract') {
-        // Validate field
+        // Validate field - only contract-specific fields remain
         const validFields = [
-          'directDebitSetup',
-          'directDebitConfirmed',
           'signedContractReceived',
           'contractUploaded',
-          'contractAddedToXero',
           'contractSentToClient',
-          'dpaSignedGdpr',
-          'firstInvoiceSent',
-          'firstPaymentMade',
           'paymentTermsAgreed',
+          'outOfScopeRateAgreed',
         ];
 
         if (!validFields.includes(field)) {
@@ -353,10 +380,23 @@ export const updateOnboardingField = withAuth(
         };
       }
 
-      // Fetch updated data - need to call the wrapped action
-      // Since we're already inside a withAuth wrapper, we can't call another wrapped action directly
-      // We need to fetch the data manually here
-      const updatedClient = await clientService.getClientById(clientId);
+      // Fetch updated data with new client-level payment fields
+      const updatedClient = await db.client.findUnique({
+        where: { id: clientId },
+        select: {
+          id: true,
+          companyName: true,
+          welcomeEmailSent: true,
+          paymentMethod: true,
+          directDebitSetup: true,
+          directDebitConfirmed: true,
+          contractAddedToXero: true,
+          recurringInvoiceSetup: true,
+          dpaSignedGdpr: true,
+          firstInvoiceSent: true,
+          firstPaymentMade: true,
+        },
+      });
 
       if (!updatedClient) {
         return {
@@ -373,16 +413,11 @@ export const updateOnboardingField = withAuth(
         select: {
           id: true,
           contractNumber: true,
-          directDebitSetup: true,
-          directDebitConfirmed: true,
           signedContractReceived: true,
           contractUploaded: true,
-          contractAddedToXero: true,
           contractSentToClient: true,
-          dpaSignedGdpr: true,
-          firstInvoiceSent: true,
-          firstPaymentMade: true,
           paymentTermsAgreed: true,
+          outOfScopeRateAgreed: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -393,11 +428,7 @@ export const updateOnboardingField = withAuth(
       return {
         success: true,
         data: {
-          client: {
-            id: updatedClient.id,
-            companyName: updatedClient.companyName,
-            welcomeEmailSent: updatedClient.welcomeEmailSent,
-          },
+          client: updatedClient,
           contract: updatedContracts[0] || null,
         },
       };

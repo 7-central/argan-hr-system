@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { validateSession } from '@/lib/utils/system/session';
 
+import { AdminUserSearch } from '@/components/admin-user-search';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -84,6 +85,9 @@ export default async function AdminUsersPage({
             </CardContent>
           </Card>
         )}
+
+        {/* Search Bar */}
+        <AdminUserSearch />
 
         {/* Optimistic Admin List */}
         <AdminPageWrapper
