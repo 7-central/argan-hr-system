@@ -9,6 +9,7 @@ import {
   Building2,
   CheckCircle,
   CreditCard,
+  FileText,
   Mail,
   Save,
   ShieldCheck,
@@ -54,6 +55,7 @@ interface Contact {
 
 interface Contract {
   id: number;
+  version: number;
   contractStartDate: string;
   contractRenewalDate: string;
   status: string;
@@ -158,6 +160,14 @@ const formatDate = (date: string | null): string => {
   });
 };
 
+const formatAuditInterval = (interval: string): string => {
+  // Convert from UPPERCASE_WITH_UNDERSCORES to Title Case With Spaces
+  return interval
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export function ClientViewContent({ client, editMode: initialEditMode, initialTab }: ClientViewContentProps) {
   const router = useRouter();
   const [editMode, setEditMode] = useState(initialEditMode);
@@ -190,6 +200,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
   const [country, setCountry] = useState(client.country || '');
 
   // External audit state
+  const [externalAudit, setExternalAudit] = useState(client.externalAudit);
   const [audits, setAudits] = useState(client.audits || []);
 
   // Contact state
@@ -297,17 +308,18 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       // Save client changes
       const result = await updateClient(client.id, {
         companyName,
-        businessId: businessId || null,
-        sector: sector || null,
+        businessId: businessId || undefined,
+        sector: sector || undefined,
         serviceTier: serviceTier as 'TIER_1' | 'DOC_ONLY' | 'AD_HOC',
-        monthlyRetainer: monthlyRetainer ? parseFloat(monthlyRetainer) : null,
+        monthlyRetainer: monthlyRetainer ? parseFloat(monthlyRetainer) : undefined,
         status: status as 'ACTIVE' | 'INACTIVE' | 'PENDING',
-        addressLine1: addressLine1 || null,
-        addressLine2: addressLine2 || null,
-        city: city || null,
-        postcode: postcode || null,
-        country: country || null,
-        paymentMethod: paymentMethod as 'DIRECT_DEBIT' | 'INVOICE' | null,
+        addressLine1: addressLine1 || undefined,
+        addressLine2: addressLine2 || undefined,
+        city: city || undefined,
+        postcode: postcode || undefined,
+        country: country || undefined,
+        externalAudit,
+        paymentMethod: paymentMethod as 'DIRECT_DEBIT' | 'INVOICE' | undefined,
         directDebitSetup,
         directDebitConfirmed,
         contractAddedToXero,
@@ -333,8 +345,8 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
             return updateContact(contact.id, {
               name: contact.name,
               email: contact.email,
-              phone: contact.phone || null,
-              role: contact.role || null,
+              phone: contact.phone || undefined,
+              role: contact.role || undefined,
             });
           }
           return { success: true };
@@ -413,8 +425,15 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
           toast.warning('Some updates failed. Please try again.');
         } else {
           toast.success('All changes saved successfully');
-          setEditMode(false);
-          router.refresh();
+
+          // Exit edit mode and clean up URL
+          setTimeout(() => {
+            setEditMode(false);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('edit');
+            window.history.pushState({}, '', url);
+            router.refresh();
+          }, 500);
         }
       } else {
         toast.error(result.error || 'Failed to save changes');
@@ -440,6 +459,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
     city !== (client.city || '') ||
     postcode !== (client.postcode || '') ||
     country !== (client.country || '') ||
+    externalAudit !== client.externalAudit ||
     paymentMethod !== (client.paymentMethod || '') ||
     directDebitSetup !== (client.directDebitSetup || false) ||
     directDebitConfirmed !== (client.directDebitConfirmed || false) ||
@@ -471,10 +491,8 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
   }, [initialEditMode]);
 
   return (
-    <div className="relative">
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-[80%] mx-auto grid-cols-6 h-auto">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-[80%] mx-auto grid-cols-6 h-auto mb-6 translate-y-5">
         <TabsTrigger key="company" value="company" className="data-[state=active]:text-primary">
           Company & Tier
         </TabsTrigger>
@@ -497,46 +515,53 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
         </TabsTrigger>
       </TabsList>
 
-      {/* Company & Tier */}
-      <TabsContent value="company" className="mt-6">
-        <Card className="relative border-0 shadow-none">
+      {/* Container for all tab content */}
+      <div className="relative">
+        {/* Edit/Save Button - Positioned absolutely to appear on all tabs */}
+        <div className="absolute top-4 right-4 z-10">
           {editMode ? (
             <button
               onClick={handleSaveAll}
               disabled={isSaving}
-              className={`absolute top-4 right-4 h-12 w-12 flex items-center justify-center rounded transition-colors ${
+              className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
                 isSaving
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : hasUnsavedChanges
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-gray-200 text-gray-400'
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-red-500 hover:text-green-500'
               }`}
-              title={isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save all changes' : 'No changes to save'}
+              title={isSaving ? 'Saving...' : 'Save all changes'}
             >
               {isSaving ? (
-                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Save className="h-5 w-5" />
+                <Save className="h-8 w-8" />
               )}
             </button>
           ) : (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
               onClick={() => {
                 setEditMode(true);
                 const url = new URL(window.location.href);
                 url.searchParams.set('edit', 'true');
                 window.history.pushState({}, '', url);
               }}
-              className="absolute top-4 right-4 h-12 w-12 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
               title="Edit client details"
             >
-              <SquarePen className="h-5 w-5" />
-            </button>
+              <SquarePen className="h-4 w-4" />
+            </Button>
           )}
+        </div>
 
-          <CardHeader className="flex flex-row items-center gap-3">
-            <Building2 className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl">Company and Tier Information</CardTitle>
+      {/* Company & Tier */}
+      <TabsContent value="company" className="mt-6">
+        <Card className="border-0 shadow-none">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Building2 className="h-5 w-5" />
+              Company and Tier Information
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
@@ -681,9 +706,11 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {/* Contacts */}
       <TabsContent value="contacts" className="mt-6">
         <Card className="border-0 shadow-none">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <Mail className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl">Client Contacts</CardTitle>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Mail className="h-5 w-5" />
+              Client Contacts
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ContactTabsProvider>
@@ -703,9 +730,11 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {/* Address */}
       <TabsContent value="address" className="mt-6">
         <Card className="border-0 shadow-none">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <Building2 className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl">Address Information</CardTitle>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Building2 className="h-5 w-5" />
+              Address Information
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
@@ -801,11 +830,31 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {/* External Auditing */}
       <TabsContent value="auditing" className="mt-6">
         <Card className="border-0 shadow-none">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl">External Auditing</CardTitle>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <ShieldCheck className="h-5 w-5" />
+              External Auditing
+            </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Externally Audited Toggle */}
+            <div className="mb-6 space-y-2">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Externally Audited
+              </Label>
+              {editMode ? (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={externalAudit}
+                    onCheckedChange={setExternalAudit}
+                  />
+                  <span className="text-sm">{externalAudit ? 'Yes' : 'No'}</span>
+                </div>
+              ) : (
+                <p className="text-base">{client.externalAudit ? 'Yes' : 'No'}</p>
+              )}
+            </div>
+
             {audits.length > 0 ? (
               <div className="space-y-4">
                 <p className="text-sm font-semibold text-muted-foreground">Audit Details</p>
@@ -860,7 +909,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-base">{audit.interval.replace('_', ' ')}</p>
+                          <p className="text-base">{formatAuditInterval(audit.interval)}</p>
                         )}
                       </div>
 
@@ -894,9 +943,11 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {client.paymentMethod && (
         <TabsContent value="payment" className="mt-6">
           <Card className="border-0 shadow-none">
-            <CardHeader className="flex flex-row items-center gap-3">
-              <CreditCard className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl">Payment Information</CardTitle>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <CreditCard className="h-5 w-5" />
+                Payment Information
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
@@ -925,7 +976,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 {/* Direct Debit Setup */}
                 {paymentMethod === 'DIRECT_DEBIT' && (
                   <>
-                    <div className="space-y-2">
+                    <div className="flex flex-col justify-center space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">
                         Direct Debit Setup
                       </Label>
@@ -944,7 +995,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                       )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="flex flex-col justify-center space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">
                         Direct Debit Confirmed
                       </Label>
@@ -966,7 +1017,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 )}
 
                 {/* Contract Added to Xero */}
-                <div className="space-y-2">
+                <div className="flex flex-col justify-center space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">
                     Contract Added to Xero
                   </Label>
@@ -987,7 +1038,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
 
                 {/* Recurring Invoice Setup */}
                 {paymentMethod === 'INVOICE' && (
-                  <div className="space-y-2">
+                  <div className="flex flex-col justify-center space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">
                       Recurring Invoice Setup
                     </Label>
@@ -1008,7 +1059,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 )}
 
                 {/* DPA Signed (GDPR) */}
-                <div className="space-y-2">
+                <div className="flex flex-col justify-center space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">
                     DPA Signed (GDPR)
                   </Label>
@@ -1028,7 +1079,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 </div>
 
                 {/* First Invoice Sent */}
-                <div className="space-y-2">
+                <div className="flex flex-col justify-center space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">
                     First Invoice Sent
                   </Label>
@@ -1048,7 +1099,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 </div>
 
                 {/* First Payment Made */}
-                <div className="space-y-2">
+                <div className="flex flex-col justify-center space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">
                     First Payment Made
                   </Label>
@@ -1076,14 +1127,19 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       <TabsContent value="contract-service" className="mt-6">
         {activeContract ? (
           <Card className="border-0 shadow-none">
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <CheckCircle className="h-5 w-5" />
+                Contract Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-6">
                 <div key="contract-info">
-                  <h4 className="text-base font-semibold mb-4 text-primary">Contract Information</h4>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div key="contract-version" className="space-y-2">
                       <p className="text-sm font-medium text-muted-foreground">Contract Version</p>
-                      <p className="text-base">v{activeContract.id}</p>
+                      <p className="text-base">v{activeContract.version}</p>
                     </div>
 
                     <div key="contract-status" className="space-y-2">
@@ -1128,7 +1184,10 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 </div>
 
                 <div key="service-agreement-info">
-                  <h4 className="text-base font-semibold mb-4 text-primary">Service Agreement Information</h4>
+                  <h4 className="flex items-center gap-2 text-base font-semibold mb-4 text-primary">
+                    <FileText className="h-5 w-5" />
+                    Service Agreement Information
+                  </h4>
                   <Tabs defaultValue="in-scope" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger key="in-scope" value="in-scope" className="data-[state=active]:text-primary">
@@ -1458,13 +1517,19 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
           </Card>
         ) : (
           <Card className="border-0 shadow-none">
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <CheckCircle className="h-5 w-5" />
+                Contract Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <p className="text-muted-foreground">No active contract found</p>
             </CardContent>
           </Card>
         )}
       </TabsContent>
+      </div> {/* End of bordered container */}
     </Tabs>
-    </div>
   );
 }
