@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Building2,
   BadgePoundSterling,
+  Calculator,
   Mail,
   ShieldCheck,
   ChevronLeft,
@@ -23,6 +24,7 @@ import { z } from 'zod';
 
 import { AVAILABLE_SERVICES_IN_SCOPE, AVAILABLE_SERVICES_OUT_OF_SCOPE } from '@/lib/constants/contract';
 
+import { VatCalculatorModal } from '@/components/modals/vat-calculator-modal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -50,7 +52,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { SectorSelect } from './sector-select';
 
-
 import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
 import type { Client, CreateClientDto } from '@/lib/types/client';
 
@@ -58,6 +59,7 @@ import type { Client, CreateClientDto } from '@/lib/types/client';
  * Client form validation schema
  */
 const clientFormSchema = z.object({
+  clientType: z.enum(['COMPANY', 'INDIVIDUAL']).default('COMPANY'),
   companyName: z
     .string()
     .min(1, 'Company name is required')
@@ -74,12 +76,13 @@ const clientFormSchema = z.object({
   serviceTier: z.enum(['TIER_1', 'DOC_ONLY', 'AD_HOC']),
   monthlyRetainer: z
     .string()
-    .min(1, 'Monthly retainer is required')
-    .transform((val) => Number(val))
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => val ? Number(val) : 0)
     .pipe(
       z
         .number()
-        .positive('Monthly retainer must be positive')
+        .min(0, 'Monthly retainer must be 0 or greater')
         .max(999999.99, 'Monthly retainer must be less than 1,000,000')
     ),
   contactName: z
@@ -177,6 +180,7 @@ const clientFormSchema = z.object({
     .optional(),
   nextAuditDate: z.string().optional().or(z.literal('')),
   paymentMethod: z.enum(['INVOICE', 'DIRECT_DEBIT']).optional(),
+  chargeVat: z.boolean().default(true),
   // In Scope Service
   hrAdminInclusiveHours: z
     .string()
@@ -245,6 +249,7 @@ export function ClientForm({
   }>>([{ auditedBy: '', auditInterval: '', nextAuditDate: '' }]);
   const [selectedInScopeServices, setSelectedInScopeServices] = useState<string[]>([]);
   const [selectedOutOfScopeServices, setSelectedOutOfScopeServices] = useState<string[]>([]);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
 
   // Calculate default dates
   const today = new Date().toISOString().split('T')[0];
@@ -256,6 +261,7 @@ export function ClientForm({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(clientFormSchema) as any,
     defaultValues: {
+      clientType: 'COMPANY',
       companyName: client?.companyName || '',
       businessId: client?.businessId || '',
       sector: client?.sector || '',
@@ -291,19 +297,21 @@ export function ClientForm({
       auditInterval: undefined,
       nextAuditDate: '',
       paymentMethod: undefined,
+      chargeVat: true,
       // In Scope Service
       hrAdminInclusiveHours: '',
       employmentLawInclusiveHours: '',
       // Out of Scope Service
       hrAdminRate: '',
-      hrAdminRateUnit: undefined,
+      hrAdminRateUnit: 'HOURLY',
       employmentLawRate: '',
-      employmentLawRateUnit: undefined,
+      employmentLawRateUnit: 'HOURLY',
       mileageRate: '',
       overnightRate: '',
     },
   });
 
+  const clientType = form.watch('clientType');
   const serviceTier = form.watch('serviceTier');
   const contractStartDate = form.watch('contractStartDate');
 
@@ -359,6 +367,7 @@ export function ClientForm({
 
     try {
       const submitData: CreateClientDto = {
+        clientType: data.clientType,
         companyName: data.companyName,
         businessId: data.businessId || undefined,
         sector: data.sector || undefined,
@@ -401,6 +410,7 @@ export function ClientForm({
               }))
           : undefined,
         paymentMethod: data.paymentMethod,
+        chargeVat: data.chargeVat,
         // Service Agreement
         hrAdminInclusiveHours: data.hrAdminInclusiveHours ? parseFloat(data.hrAdminInclusiveHours) : undefined,
         employmentLawInclusiveHours: data.employmentLawInclusiveHours ? parseFloat(data.employmentLawInclusiveHours) : undefined,
@@ -592,16 +602,88 @@ export function ClientForm({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Client Type Selection */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label>Client Type <span className="text-red-500">*</span></Label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => form.setValue('clientType', 'COMPANY')}
+                    disabled={isSubmitting || isLoading}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 rounded-md border text-sm
+                      transition-all duration-200
+                      ${
+                        clientType === 'COMPANY'
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border hover:border-primary/30'
+                      }
+                      ${isSubmitting || isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    <div
+                      className={`
+                        w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0
+                        transition-all duration-200
+                        ${
+                          clientType === 'COMPANY'
+                            ? 'border-primary'
+                            : 'border-muted-foreground/30'
+                        }
+                      `}
+                    >
+                      {clientType === 'COMPANY' && (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <span className="text-left">Company</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => form.setValue('clientType', 'INDIVIDUAL')}
+                    disabled={isSubmitting || isLoading}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 rounded-md border text-sm
+                      transition-all duration-200
+                      ${
+                        clientType === 'INDIVIDUAL'
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border hover:border-primary/30'
+                      }
+                      ${isSubmitting || isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    <div
+                      className={`
+                        w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0
+                        transition-all duration-200
+                        ${
+                          clientType === 'INDIVIDUAL'
+                            ? 'border-primary'
+                            : 'border-muted-foreground/30'
+                        }
+                      `}
+                    >
+                      {clientType === 'INDIVIDUAL' && (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <span className="text-left">Individual</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">
-                    Company Name <span className="text-red-500">*</span>
+                    {clientType === 'COMPANY' ? 'Company Name' : 'Name'} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="companyName"
                     {...form.register('companyName')}
                     disabled={isSubmitting || isLoading}
-                    placeholder="Enter company name"
+                    placeholder={clientType === 'COMPANY' ? 'Enter company name' : 'Enter individual\'s name'}
                   />
                   {form.formState.errors.companyName && (
                     <p className="text-sm text-red-500">{form.formState.errors.companyName.message}</p>
@@ -661,27 +743,6 @@ export function ClientForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="monthlyRetainer">
-                    Monthly Retainer (£) <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="monthlyRetainer"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="999999.99"
-                    {...form.register('monthlyRetainer')}
-                    disabled={isSubmitting || isLoading}
-                    placeholder="0.00"
-                  />
-                  {form.formState.errors.monthlyRetainer && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.monthlyRetainer.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="status">Client Status</Label>
                   <Select
                     value={form.watch('status')}
@@ -703,6 +764,29 @@ export function ClientForm({
                     <p className="text-sm text-red-500">{form.formState.errors.status.message}</p>
                   )}
                 </div>
+
+                {serviceTier !== 'AD_HOC' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="monthlyRetainer">
+                      Monthly Retainer (£) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="monthlyRetainer"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="999999.99"
+                      {...form.register('monthlyRetainer')}
+                      disabled={isSubmitting || isLoading}
+                      placeholder="0.00"
+                    />
+                    {form.formState.errors.monthlyRetainer && (
+                      <p className="text-sm text-red-500">
+                        {form.formState.errors.monthlyRetainer.message}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -1195,6 +1279,25 @@ export function ClientForm({
                   </button>
                 </div>
               </div>
+
+              {/* VAT Checkbox */}
+              <div className="space-y-3">
+                <Label>VAT Settings</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="chargeVat"
+                    checked={form.watch('chargeVat')}
+                    onCheckedChange={(checked) => form.setValue('chargeVat', checked as boolean)}
+                    disabled={isSubmitting || isLoading}
+                  />
+                  <Label htmlFor="chargeVat" className="cursor-pointer text-sm font-normal">
+                    Charge VAT on invoices
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6">
+                  Enable this if VAT should be added to invoices for this client
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1273,10 +1376,20 @@ export function ClientForm({
 
               {/* Service Agreement Information */}
               <div>
-                <h4 className="text-base font-semibold mb-4 text-primary flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Service Agreement Information
-                </h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-base font-semibold text-primary flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Service Agreement Information
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setCalculatorOpen(true)}
+                    className="text-purple-600 hover:text-purple-700 transition-colors"
+                    title="VAT Calculator"
+                  >
+                    <Calculator className="h-5 w-5" />
+                  </button>
+                </div>
                 <Tabs defaultValue="in-scope" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="in-scope" className="data-[state=active]:text-primary">In Scope Service</TabsTrigger>
@@ -1546,7 +1659,7 @@ export function ClientForm({
             <AlertDialogTitle>Client Status is Inactive</AlertDialogTitle>
             <AlertDialogDescription>
               The client status is still set to <strong>INACTIVE</strong>. Are you sure you want to create
-              this client as inactive? You can change the status to ACTIVE or PENDING before continuing.
+              this client as inactive? If you click &apos;Go Back&apos; you can change the status to ACTIVE or PENDING before continuing.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1562,6 +1675,12 @@ export function ClientForm({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* VAT Calculator Modal */}
+      <VatCalculatorModal
+        open={calculatorOpen}
+        onOpenChange={setCalculatorOpen}
+      />
     </div>
   );
 }

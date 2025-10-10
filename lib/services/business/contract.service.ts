@@ -305,11 +305,6 @@ export class ContractService {
       throw new ValidationError('Contract does not belong to this client');
     }
 
-    // Cannot set DRAFT contracts as ACTIVE
-    if (targetContract.status === 'DRAFT') {
-      throw new ValidationError('Cannot set DRAFT contracts as ACTIVE. Please complete the contract first.');
-    }
-
     // If already active, return as-is
     if (targetContract.status === 'ACTIVE') {
       return targetContract;

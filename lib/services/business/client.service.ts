@@ -89,6 +89,7 @@ export class ClientService {
         skip: offset,
         select: {
           id: true,
+          clientType: true,
           companyName: true,
           businessId: true,
           sector: true,
@@ -108,6 +109,7 @@ export class ClientService {
           welcomeEmailSent: true,
           externalAudit: true,
           paymentMethod: true,
+          chargeVat: true,
           directDebitSetup: true,
           directDebitConfirmed: true,
           contractAddedToXero: true,
@@ -228,6 +230,7 @@ export class ClientService {
       // Create the client
       const newClient = await tx.client.create({
         data: {
+          clientType: data.clientType || 'COMPANY',
           companyName: data.companyName,
           businessId: data.businessId || null,
           sector: data.sector || null,
@@ -246,6 +249,7 @@ export class ClientService {
           status: data.status || 'ACTIVE',
           externalAudit: data.externalAudit || false,
           paymentMethod: data.paymentMethod || null,
+          chargeVat: data.chargeVat !== undefined ? data.chargeVat : true,
           // Conditional payment onboarding fields based on payment method
           directDebitSetup,
           directDebitConfirmed,
@@ -406,6 +410,7 @@ export class ClientService {
     const client = await this.db.client.update({
       where: { id },
       data: {
+        clientType: data.clientType,
         companyName: data.companyName,
         businessId: data.businessId !== undefined ? data.businessId : undefined,
         sector: data.sector !== undefined ? data.sector : undefined,
@@ -424,6 +429,17 @@ export class ClientService {
         contractRenewalDate:
           data.contractRenewalDate !== undefined ? data.contractRenewalDate : undefined,
         status: data.status,
+        chargeVat: data.chargeVat !== undefined ? data.chargeVat : undefined,
+        paymentMethod: data.paymentMethod !== undefined ? data.paymentMethod : undefined,
+        directDebitSetup: data.directDebitSetup !== undefined ? data.directDebitSetup : undefined,
+        directDebitConfirmed: data.directDebitConfirmed !== undefined ? data.directDebitConfirmed : undefined,
+        contractAddedToXero: data.contractAddedToXero !== undefined ? data.contractAddedToXero : undefined,
+        recurringInvoiceSetup: data.recurringInvoiceSetup !== undefined ? data.recurringInvoiceSetup : undefined,
+        dpaSignedGdpr: data.dpaSignedGdpr !== undefined ? data.dpaSignedGdpr : undefined,
+        firstInvoiceSent: data.firstInvoiceSent !== undefined ? data.firstInvoiceSent : undefined,
+        firstPaymentMade: data.firstPaymentMade !== undefined ? data.firstPaymentMade : undefined,
+        lastPriceIncrease: data.lastPriceIncrease !== undefined ? data.lastPriceIncrease : undefined,
+        externalAudit: data.externalAudit !== undefined ? data.externalAudit : undefined,
       },
     });
 

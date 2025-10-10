@@ -86,6 +86,7 @@ interface Audit {
 
 interface Client {
   id: number;
+  clientType: 'COMPANY' | 'INDIVIDUAL';
   companyName: string;
   businessId: string | null;
   sector: string | null;
@@ -104,6 +105,7 @@ interface Client {
   status: string;
   welcomeEmailSent: boolean;
   paymentMethod: string | null;
+  chargeVat: boolean;
   directDebitSetup: boolean | null;
   directDebitConfirmed: boolean | null;
   contractAddedToXero: boolean;
@@ -121,7 +123,8 @@ interface Client {
 interface ClientViewContentProps {
   client: Client;
   editMode: boolean;
-  initialTab?: string;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
 // Helper functions
@@ -185,10 +188,9 @@ const getContractStatusColor = (status: string): string => {
   }
 };
 
-export function ClientViewContent({ client, editMode: initialEditMode, initialTab }: ClientViewContentProps) {
+export function ClientViewContent({ client, editMode: initialEditMode, activeTab, onTabChange }: ClientViewContentProps) {
   const router = useRouter();
   const [editMode, setEditMode] = useState(initialEditMode);
-  const [activeTab, setActiveTab] = useState(initialTab || 'company');
   const [isSaving, setIsSaving] = useState(false);
 
   // Get active contract
@@ -272,6 +274,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
 
   // Payment state
   const [paymentMethod, setPaymentMethod] = useState(client.paymentMethod || '');
+  const [chargeVat, setChargeVat] = useState(client.chargeVat ?? true);
   const [directDebitSetup, setDirectDebitSetup] = useState(client.directDebitSetup || false);
   const [directDebitConfirmed, setDirectDebitConfirmed] = useState(client.directDebitConfirmed || false);
   const [contractAddedToXero, setContractAddedToXero] = useState(client.contractAddedToXero);
@@ -337,6 +340,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
         country: country || undefined,
         externalAudit,
         paymentMethod: paymentMethod as 'DIRECT_DEBIT' | 'INVOICE' | undefined,
+        chargeVat,
         directDebitSetup,
         directDebitConfirmed,
         contractAddedToXero,
@@ -469,7 +473,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
 
   return (
     <div className="relative w-full">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
         <div className="relative mb-6">
           <TabsList className="grid max-w-5xl mx-auto grid-cols-6 h-auto w-full">
             <TabsTrigger key="company" value="company" className="data-[state=active]:text-primary">
@@ -495,58 +499,55 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
           </TabsList>
         </div>
 
-        {/* Edit/Save Button - Positioned absolutely to appear on all tabs */}
-        <div className="absolute top-6 right-4 z-10">
-          {editMode ? (
-            <button
-              onClick={handleSaveAll}
-              disabled={isSaving}
-              className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
-                isSaving
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-red-500 hover:text-green-500'
-              }`}
-              title={isSaving ? 'Saving...' : 'Save all changes'}
-            >
-              {isSaving ? (
-                <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Save className="h-8 w-8" />
-              )}
-            </button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
-              onClick={() => {
-                setEditMode(true);
-                const url = new URL(window.location.href);
-                url.searchParams.set('edit', 'true');
-                window.history.pushState({}, '', url);
-              }}
-              title="Edit client details"
-            >
-              <SquarePen className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
       {/* Company & Tier */}
       <TabsContent value="company" className="mt-6 relative">
         <Card className="border-0 shadow-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-primary">
               <Building2 className="h-5 w-5" />
               Company and Tier Information
             </CardTitle>
+            {/* Edit/Save Button */}
+            {editMode ? (
+              <button
+                onClick={handleSaveAll}
+                disabled={isSaving}
+                className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                  isSaving
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-red-500 hover:text-green-500'
+                }`}
+                title={isSaving ? 'Saving...' : 'Save all changes'}
+              >
+                {isSaving ? (
+                  <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="h-8 w-8" />
+                )}
+              </button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                onClick={() => {
+                  setEditMode(true);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('edit', 'true');
+                  window.history.pushState({}, '', url);
+                }}
+                title="Edit client details"
+              >
+                <SquarePen className="h-4 w-4" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
-              {/* Company Name */}
+              {/* Company Name / Name */}
               <div className="space-y-2">
                 <Label htmlFor="companyName" className="text-sm font-medium text-muted-foreground">
-                  Company Name
+                  {client.clientType === 'COMPANY' ? 'Company Name' : 'Name'}
                 </Label>
                 {editMode ? (
                   <Input
@@ -616,28 +617,6 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                 )}
               </div>
 
-              {/* Monthly Retainer */}
-              <div className="space-y-2">
-                <Label htmlFor="monthlyRetainer" className="text-sm font-medium text-muted-foreground">
-                  Monthly Retainer
-                </Label>
-                {editMode ? (
-                  <Input
-                    id="monthlyRetainer"
-                    type="number"
-                    step="0.01"
-                    value={monthlyRetainer}
-                    onChange={(e) => setMonthlyRetainer(e.target.value)}
-                    className="w-full"
-                    placeholder="0.00"
-                  />
-                ) : (
-                  <p className="text-base">
-                    {client.monthlyRetainer ? `£${client.monthlyRetainer.toFixed(2)}` : '-'}
-                  </p>
-                )}
-              </div>
-
               {/* Client Status */}
               <div className="space-y-2">
                 <Label htmlFor="status" className="text-sm font-medium text-muted-foreground">
@@ -658,6 +637,30 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                   <p className="text-base">{getStatusLabel(client.status)}</p>
                 )}
               </div>
+
+              {/* Monthly Retainer - hidden for AD_HOC */}
+              {serviceTier !== 'AD_HOC' && (
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyRetainer" className="text-sm font-medium text-muted-foreground">
+                    Monthly Retainer
+                  </Label>
+                  {editMode ? (
+                    <Input
+                      id="monthlyRetainer"
+                      type="number"
+                      step="0.01"
+                      value={monthlyRetainer}
+                      onChange={(e) => setMonthlyRetainer(e.target.value)}
+                      className="w-full"
+                      placeholder="0.00"
+                    />
+                  ) : (
+                    <p className="text-base">
+                      {client.monthlyRetainer ? `£${client.monthlyRetainer.toFixed(2)}` : '-'}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Last Price Increase */}
               <div className="space-y-2">
@@ -684,11 +687,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {/* Contacts */}
       <TabsContent value="contacts" className="mt-6 relative">
         <Card className="border-0 shadow-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-primary">
               <Mail className="h-5 w-5" />
               Client Contacts
             </CardTitle>
+            {/* Edit/Save Button */}
+            {editMode ? (
+              <button
+                onClick={handleSaveAll}
+                disabled={isSaving}
+                className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                  isSaving
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-red-500 hover:text-green-500'
+                }`}
+                title={isSaving ? 'Saving...' : 'Save all changes'}
+              >
+                {isSaving ? (
+                  <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="h-8 w-8" />
+                )}
+              </button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                onClick={() => {
+                  setEditMode(true);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('edit', 'true');
+                  window.history.pushState({}, '', url);
+                }}
+                title="Edit client details"
+              >
+                <SquarePen className="h-4 w-4" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <ContactTabsProvider>
@@ -708,11 +745,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {/* Address */}
       <TabsContent value="address" className="mt-6 relative">
         <Card className="border-0 shadow-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-primary">
               <Building2 className="h-5 w-5" />
               Address Information
             </CardTitle>
+            {/* Edit/Save Button */}
+            {editMode ? (
+              <button
+                onClick={handleSaveAll}
+                disabled={isSaving}
+                className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                  isSaving
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-red-500 hover:text-green-500'
+                }`}
+                title={isSaving ? 'Saving...' : 'Save all changes'}
+              >
+                {isSaving ? (
+                  <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="h-8 w-8" />
+                )}
+              </button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                onClick={() => {
+                  setEditMode(true);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('edit', 'true');
+                  window.history.pushState({}, '', url);
+                }}
+                title="Edit client details"
+              >
+                <SquarePen className="h-4 w-4" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
@@ -808,11 +879,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {/* External Auditing */}
       <TabsContent value="auditing" className="mt-6 relative">
         <Card className="border-0 shadow-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-primary">
               <ShieldCheck className="h-5 w-5" />
               External Auditing
             </CardTitle>
+            {/* Edit/Save Button */}
+            {editMode ? (
+              <button
+                onClick={handleSaveAll}
+                disabled={isSaving}
+                className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                  isSaving
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-red-500 hover:text-green-500'
+                }`}
+                title={isSaving ? 'Saving...' : 'Save all changes'}
+              >
+                {isSaving ? (
+                  <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="h-8 w-8" />
+                )}
+              </button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                onClick={() => {
+                  setEditMode(true);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('edit', 'true');
+                  window.history.pushState({}, '', url);
+                }}
+                title="Edit client details"
+              >
+                <SquarePen className="h-4 w-4" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {/* Externally Audited Toggle */}
@@ -921,11 +1026,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       {client.paymentMethod && (
         <TabsContent value="payment" className="mt-6 relative">
           <Card className="border-0 shadow-none">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-primary">
                 <CreditCard className="h-5 w-5" />
                 Payment Information
               </CardTitle>
+              {/* Edit/Save Button */}
+              {editMode ? (
+                <button
+                  onClick={handleSaveAll}
+                  disabled={isSaving}
+                  className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                    isSaving
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-red-500 hover:text-green-500'
+                  }`}
+                  title={isSaving ? 'Saving...' : 'Save all changes'}
+                >
+                  {isSaving ? (
+                    <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="h-8 w-8" />
+                  )}
+                </button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                  onClick={() => {
+                    setEditMode(true);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('edit', 'true');
+                    window.history.pushState({}, '', url);
+                  }}
+                  title="Edit client details"
+                >
+                  <SquarePen className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
@@ -948,6 +1087,26 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
                     <p className="text-base">
                       {client.paymentMethod === 'DIRECT_DEBIT' ? 'Direct Debit' : 'Invoice'}
                     </p>
+                  )}
+                </div>
+
+                {/* VAT Checkbox */}
+                <div className="flex flex-col justify-center space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Charge VAT on Invoices
+                  </Label>
+                  {editMode ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={chargeVat}
+                        onChange={(e) => setChargeVat(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">VAT charged</span>
+                    </div>
+                  ) : (
+                    <p className="text-base">{chargeVat ? 'Yes' : 'No'}</p>
                   )}
                 </div>
 
@@ -1105,11 +1264,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
       <TabsContent value="contract-service" className="mt-6 relative">
         {activeContract ? (
           <Card className="border-0 shadow-none">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-primary">
                 <CheckCircle className="h-5 w-5" />
                 Contract Information
               </CardTitle>
+              {/* Edit/Save Button */}
+              {editMode ? (
+                <button
+                  onClick={handleSaveAll}
+                  disabled={isSaving}
+                  className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                    isSaving
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-red-500 hover:text-green-500'
+                  }`}
+                  title={isSaving ? 'Saving...' : 'Save all changes'}
+                >
+                  {isSaving ? (
+                    <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="h-8 w-8" />
+                  )}
+                </button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                  onClick={() => {
+                    setEditMode(true);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('edit', 'true');
+                    window.history.pushState({}, '', url);
+                  }}
+                  title="Edit client details"
+                >
+                  <SquarePen className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -1498,11 +1691,45 @@ export function ClientViewContent({ client, editMode: initialEditMode, initialTa
           </Card>
         ) : (
           <Card className="border-0 shadow-none">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-primary">
                 <CheckCircle className="h-5 w-5" />
                 Contract Information
               </CardTitle>
+              {/* Edit/Save Button */}
+              {editMode ? (
+                <button
+                  onClick={handleSaveAll}
+                  disabled={isSaving}
+                  className={`h-12 w-12 flex items-center justify-center rounded transition-colors ${
+                    isSaving
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-red-500 hover:text-green-500'
+                  }`}
+                  title={isSaving ? 'Saving...' : 'Save all changes'}
+                >
+                  {isSaving ? (
+                    <div className="h-8 w-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="h-8 w-8" />
+                  )}
+                </button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-green-800 hover:text-green-600 transition-colors"
+                  onClick={() => {
+                    setEditMode(true);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('edit', 'true');
+                    window.history.pushState({}, '', url);
+                  }}
+                  title="Edit client details"
+                >
+                  <SquarePen className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">No active contract found</p>

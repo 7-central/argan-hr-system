@@ -31,11 +31,12 @@ model Admin {
   @@map("admins")
 }
 
-// HR consultancy clients (companies)
+// HR consultancy clients (companies or individuals)
 model Client {
   id                  Int           @id @default(autoincrement())
 
   // Business Info
+  clientType          ClientType    @default(COMPANY) @map("client_type")
   companyName         String        @map("company_name")
   businessId          String?       @map("business_id")
   sector              String?
@@ -68,6 +69,7 @@ model Client {
 
   // Payment & Infrastructure (moved from Contract - client-level, not contract-level)
   paymentMethod               PaymentMethod? @map("payment_method")
+  chargeVat                   Boolean        @default(true) @map("charge_vat") // Whether VAT is charged on invoices
   directDebitSetup            Boolean?       @map("direct_debit_setup")        // null = N/A (not Direct Debit), false = pending, true = complete
   directDebitConfirmed        Boolean?       @map("direct_debit_confirmed")    // null = N/A (not Direct Debit), false = pending, true = complete
   contractAddedToXero         Boolean        @default(false) @map("contract_added_to_xero")
@@ -327,4 +329,9 @@ enum AuditInterval {
   TWO_YEARS    @map("two_years")
   THREE_YEARS  @map("three_years")
   FIVE_YEARS   @map("five_years")
+}
+
+enum ClientType {
+  COMPANY      @map("company")
+  INDIVIDUAL   @map("individual")
 }

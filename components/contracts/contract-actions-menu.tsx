@@ -102,7 +102,7 @@ export function ContractActionsMenu({
             className={`h-8 w-8 transition-colors ${
               isActive
                 ? 'text-yellow-500 hover:text-yellow-400'
-                : 'text-amber-600 hover:text-amber-500'
+                : 'text-yellow-500 hover:text-yellow-400'
             }`}
             onClick={handleSetActive}
             disabled={isActive}

@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { ClientViewContent } from './client-view-content';
 import { ClientViewHeader } from './client-view-header';
 
@@ -12,6 +14,8 @@ interface ClientViewWrapperProps {
 }
 
 export function ClientViewWrapper({ client, editMode, backButton, initialTab }: ClientViewWrapperProps) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'company');
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header Row with Title and Actions */}
@@ -24,12 +28,18 @@ export function ClientViewWrapper({ client, editMode, backButton, initialTab }: 
           </div>
         </div>
         <div key="client-actions">
-          <ClientViewHeader clientId={client.id} />
+          <ClientViewHeader clientId={client.id} activeTab={activeTab} />
         </div>
       </div>
 
       {/* Content */}
-      <ClientViewContent key="client-content" client={client} editMode={editMode} initialTab={initialTab} />
+      <ClientViewContent
+        key="client-content"
+        client={client}
+        editMode={editMode}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
     </div>
   );
 }

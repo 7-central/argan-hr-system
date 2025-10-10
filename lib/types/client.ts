@@ -20,6 +20,7 @@ export interface GetClientsParams {
 }
 
 export interface CreateClientDto {
+  clientType?: 'COMPANY' | 'INDIVIDUAL';
   companyName: string;
   businessId?: string;
   sector?: string;
@@ -56,6 +57,7 @@ export interface CreateClientDto {
   auditInterval?: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
   nextAuditDate?: Date;
   paymentMethod?: 'INVOICE' | 'DIRECT_DEBIT';
+  chargeVat?: boolean;
   // Contract Service Agreement fields
   hrAdminInclusiveHours?: number;
   employmentLawInclusiveHours?: number;
@@ -70,6 +72,7 @@ export interface CreateClientDto {
 }
 
 export interface UpdateClientDto {
+  clientType?: 'COMPANY' | 'INDIVIDUAL';
   companyName?: string;
   businessId?: string;
   sector?: string;
@@ -100,6 +103,7 @@ export interface UpdateClientDto {
   auditInterval?: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS';
   nextAuditDate?: Date;
   paymentMethod?: 'INVOICE' | 'DIRECT_DEBIT';
+  chargeVat?: boolean;
   directDebitSetup?: boolean;
   directDebitConfirmed?: boolean;
   contractAddedToXero?: boolean;

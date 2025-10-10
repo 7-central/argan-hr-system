@@ -49,6 +49,7 @@ function optimisticClientReducer(
       const clientData = action.client as CreateClientDto;
       const optimisticClient: OptimisticClient = {
         id: action.tempId || -1,
+        clientType: clientData.clientType || 'COMPANY',
         companyName: clientData.companyName || '',
         contactName: clientData.contactName || '',
         contactEmail: clientData.contactEmail || '',
@@ -72,6 +73,7 @@ function optimisticClientReducer(
         welcomeEmailSent: false,
         externalAudit: false,
         paymentMethod: null,
+        chargeVat: clientData.chargeVat ?? true,
         directDebitSetup: false,
         directDebitConfirmed: false,
         contractAddedToXero: false,

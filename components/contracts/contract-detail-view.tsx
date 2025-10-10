@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { CheckCircle, ExternalLink, Save, SquarePen, Trash2, X } from 'lucide-react';
+import { Calculator, CheckCircle, ExternalLink, Save, SquarePen, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { updateContract } from '@/lib/actions/contract.actions';
@@ -14,6 +14,7 @@ import {
 } from '@/lib/constants/contract';
 
 import { DeleteContractDialog } from '@/components/contracts/delete-contract-dialog';
+import { VatCalculatorModal } from '@/components/modals/vat-calculator-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,6 +66,7 @@ export function ContractDetailView({ contract, clientId, initialEditMode = false
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
 
   // Form state
   const [contractStartDate, setContractStartDate] = useState(
@@ -210,7 +212,7 @@ export function ContractDetailView({ contract, clientId, initialEditMode = false
   return (
     <Card className="relative border-0">
       {/* Edit/Save Button and Delete Button */}
-      <div className="absolute top-4 right-4 flex items-center gap-2">
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
         {/* Delete Button - Only for DRAFT contracts */}
         {isDraft && !editMode && (
           <Button
@@ -389,7 +391,17 @@ export function ContractDetailView({ contract, clientId, initialEditMode = false
 
         {/* Service Agreement Information */}
         <div>
-          <h4 className="text-base font-semibold mb-4 text-primary">Service Agreement Information</h4>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-base font-semibold text-primary">Service Agreement Information</h4>
+            <button
+              type="button"
+              onClick={() => setCalculatorOpen(true)}
+              className="text-purple-600 hover:text-purple-700 transition-colors"
+              title="VAT Calculator"
+            >
+              <Calculator className="h-5 w-5" />
+            </button>
+          </div>
           <Tabs defaultValue="in-scope" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="in-scope" className="data-[state=active]:text-primary">
@@ -722,6 +734,12 @@ export function ContractDetailView({ contract, clientId, initialEditMode = false
         onOpenChange={setDeleteOpen}
         contract={contract}
         clientId={clientId}
+      />
+
+      {/* VAT Calculator Modal */}
+      <VatCalculatorModal
+        open={calculatorOpen}
+        onOpenChange={setCalculatorOpen}
       />
     </Card>
   );
