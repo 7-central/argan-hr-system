@@ -46,7 +46,7 @@ const navData = {
       disabled: true,
     },
     {
-      title: 'Documents',
+      title: 'Client Documents',
       url: '/admin/documents',
       icon: FileText,
     },

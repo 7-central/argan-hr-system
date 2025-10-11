@@ -18,7 +18,6 @@ export interface ServiceTierBreakdown {
 
 export interface RecentClient {
   companyName: string;
-  contactEmail: string;
   serviceTier: 'TIER_1' | 'DOC_ONLY' | 'AD_HOC';
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
 }
@@ -113,7 +112,6 @@ export class DashboardService {
       take: limit,
       select: {
         companyName: true,
-        contactEmail: true,
         serviceTier: true,
         status: true,
       },

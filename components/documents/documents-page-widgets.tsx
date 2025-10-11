@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { Search, Clock, Building2 } from 'lucide-react';
+import { Search, Clock, X } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
@@ -85,70 +84,97 @@ export function DocumentsPageWidgets({ clients, onSearchChange }: DocumentsPageW
     setSearchTerm(clientName);
   };
 
+  // Delete a recent search
+  const deleteRecentSearch = (clientId: number) => {
+    setRecentSearches((prev) => {
+      const updated = prev.filter((s) => s.clientId !== clientId);
+      localStorage.setItem('documentRecentSearches', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Clear search
   const clearSearch = () => {
     setSearchTerm('');
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {/* Client Search Widget */}
-      <Card className="border-primary">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Search className="h-5 w-5" />
-            Search Clients
-          </CardTitle>
-          <CardDescription>Find client documents by company name</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by client name..."
-              className="pl-8"
-            />
-          </div>
-          {searchTerm && (
-            <Button variant="ghost" size="sm" onClick={clearSearch} className="mt-2 w-full">
-              Clear Search
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
+    <div className="space-y-1">
       {/* Recent Searches Widget */}
-      <Card className="border-primary">
+      <Card className="border-0 shadow-none">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Clock className="h-5 w-5" />
-            Recent Searches
-          </CardTitle>
-          <CardDescription>Your last 3 client searches</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentSearches.length > 0 ? (
-            <div className="space-y-2">
-              {recentSearches.map((search) => (
-                <Button
-                  key={search.clientId}
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => handleRecentSearchClick(search.clientName)}
-                >
-                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                  {search.clientName}
-                </Button>
-              ))}
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Clock className="h-5 w-5" />
+                Recent Searches
+              </CardTitle>
+              <CardDescription>Your last 3 client searches</CardDescription>
             </div>
-          ) : (
+            {recentSearches.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {recentSearches.map((search) => (
+                  <div
+                    key={search.clientId}
+                    className="inline-flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer pr-1"
+                    onClick={() => handleRecentSearchClick(search.clientName)}
+                  >
+                    <span>{search.clientName}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteRecentSearch(search.clientId);
+                      }}
+                      className="h-6 w-6 rounded-sm hover:bg-muted flex items-center justify-center transition-colors"
+                      aria-label="Delete recent search"
+                    >
+                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        {recentSearches.length === 0 && (
+          <CardContent>
             <p className="text-sm text-muted-foreground text-center py-4">
               No recent searches yet
             </p>
-          )}
-        </CardContent>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Client Search Widget */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Search className="h-5 w-5" />
+                Search Clients
+              </CardTitle>
+              <CardDescription>Find client documents by company name</CardDescription>
+            </div>
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by client name..."
+                className="pl-8 pr-8"
+              />
+              {searchTerm && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
       </Card>
     </div>
   );

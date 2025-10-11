@@ -128,10 +128,16 @@ export function InternalDocsTable({ documents, search: initialSearch = '' }: Int
    */
   const getTypeVariant = (type: string): 'default' | 'secondary' | 'outline' => {
     switch (type.toLowerCase()) {
-      case 'policy':
-        return 'default';
       case 'contract':
-        return 'secondary';
+        return 'default'; // Blue
+      case 'policy':
+        return 'secondary'; // Gray
+      case 'payroll':
+      case 'training':
+      case 'compliance':
+      case 'form':
+      case 'template':
+        return 'outline'; // Light
       default:
         return 'outline';
     }
@@ -191,9 +197,9 @@ export function InternalDocsTable({ documents, search: initialSearch = '' }: Int
                     {getSortIcon('version')}
                   </button>
                 </TableHead>
-                <TableHead className="text-center">
+                <TableHead className="text-left">
                   <button
-                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                    className="flex items-center justify-start w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('title')}
                   >
                     Document Title
@@ -228,7 +234,7 @@ export function InternalDocsTable({ documents, search: initialSearch = '' }: Int
                         {doc.version}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-medium text-center">{doc.title}</TableCell>
+                    <TableCell className="font-medium text-left">{doc.title}</TableCell>
                     <TableCell className="text-sm text-muted-foreground text-center">
                       {formatDate(doc.uploadedAt)}
                     </TableCell>

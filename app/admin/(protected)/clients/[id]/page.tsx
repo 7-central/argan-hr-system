@@ -61,6 +61,7 @@ export default async function ClientViewPage({ params, searchParams }: ClientVie
     monthlyRetainer: clientData.monthlyRetainer ? Number(clientData.monthlyRetainer) : null,
     lastPriceIncrease: clientData.lastPriceIncrease?.toISOString() || null,
     contacts: clientData.contacts,
+    addresses: clientData.addresses,
     contracts: clientData.contracts.map((contract) => ({
       ...contract,
       contractStartDate: contract.contractStartDate.toISOString(),

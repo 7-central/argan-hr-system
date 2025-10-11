@@ -30,9 +30,6 @@ async function main() {
       sector: 'Manufacturing',
       serviceTier: 'TIER_1' as const,
       monthlyRetainer: 1500,
-      contactName: 'John Smith',
-      contactEmail: 'john@abcmfg.com',
-      contactPhone: '01234 567890',
       contractStartDate: new Date('2024-01-01'),
       contractRenewalDate: new Date('2025-01-01'),
       status: 'ACTIVE' as const,
@@ -43,9 +40,6 @@ async function main() {
       sector: 'Retail',
       serviceTier: 'DOC_ONLY' as const,
       monthlyRetainer: 500,
-      contactName: 'Jane Doe',
-      contactEmail: 'jane@xyzretail.com',
-      contactPhone: '01234 567891',
       contractStartDate: new Date('2024-03-01'),
       contractRenewalDate: new Date('2025-03-01'),
       status: 'ACTIVE' as const,
@@ -56,9 +50,6 @@ async function main() {
       sector: 'Healthcare',
       serviceTier: 'AD_HOC' as const,
       monthlyRetainer: null,
-      contactName: 'Sarah Wilson',
-      contactEmail: 'admin@premiercare.com',
-      contactPhone: '01234 567892',
       contractStartDate: new Date('2024-06-01'),
       contractRenewalDate: new Date('2025-06-01'),
       status: 'PENDING' as const,
@@ -67,9 +58,9 @@ async function main() {
   ];
 
   for (const clientData of sampleClients) {
-    // Check if client already exists by email
+    // Check if client already exists by company name
     const existingClient = await prisma.client.findFirst({
-      where: { contactEmail: clientData.contactEmail },
+      where: { companyName: clientData.companyName },
     });
 
     if (!existingClient) {

@@ -42,6 +42,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -59,6 +60,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SectorSelect } from './sector-select';
 
 import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
+import type { AddressInput } from '@/lib/types/address';
 import type { Client, CreateClientDto } from '@/lib/types/client';
 import type { ContactInput } from '@/lib/types/contact';
 
@@ -93,27 +95,7 @@ const clientFormSchema = z.object({
         .max(999999.99, 'Monthly retainer must be less than 1,000,000')
     ),
   // Contact fields removed - managed separately in state
-  addressLine1: z
-    .string()
-    .min(1, 'Address line 1 is required')
-    .max(255, 'Address line 1 must be less than 255 characters'),
-  addressLine2: z
-    .string()
-    .max(255, 'Address line 2 must be less than 255 characters')
-    .optional()
-    .or(z.literal('')),
-  city: z
-    .string()
-    .min(1, 'City is required')
-    .max(100, 'City must be less than 100 characters'),
-  postcode: z
-    .string()
-    .min(1, 'Postcode is required')
-    .max(20, 'Postcode must be less than 20 characters'),
-  country: z
-    .string()
-    .min(1, 'Country is required')
-    .max(100, 'Country must be less than 100 characters'),
+  // Address fields removed - managed separately in state
   contractStartDate: z.string().min(1, 'Contract start date is required'),
   contractRenewalDate: z.string().min(1, 'Contract renewal date is required'),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).default('INACTIVE'),
@@ -203,12 +185,40 @@ export function ClientForm({
     role: string;
     description: string;
     saved: boolean; // Track if contact is saved
-  }>>([]);
+  }>>(!client ? [{
+    type: 'SERVICE',
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    description: '',
+    saved: false
+  }] : []);
+  const [addresses, setAddresses] = useState<Array<{
+    type: 'SERVICE' | 'INVOICE';
+    addressLine1: string;
+    addressLine2: string;
+    city: string;
+    postcode: string;
+    country: string;
+    description: string;
+    saved: boolean; // Track if address is saved
+  }>>(!client ? [{
+    type: 'SERVICE',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    postcode: '',
+    country: 'United Kingdom',
+    description: '',
+    saved: false
+  }] : []);
   const [selectedInScopeServices, setSelectedInScopeServices] = useState<string[]>([]);
   const [selectedOutOfScopeServices, setSelectedOutOfScopeServices] = useState<string[]>([]);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [showNoContactsWarning, setShowNoContactsWarning] = useState(false);
   const [openContactAccordion, setOpenContactAccordion] = useState<string[]>([]);
+  const [openAddressAccordion, setOpenAddressAccordion] = useState<string[]>([]);
 
   // Calculate default dates
   const today = new Date().toISOString().split('T')[0];
@@ -228,11 +238,7 @@ export function ClientForm({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       monthlyRetainer: client?.monthlyRetainer ? String(client.monthlyRetainer) : ('' as any),
       // Contact fields removed - managed in contacts state
-      addressLine1: client?.addressLine1 || '',
-      addressLine2: client?.addressLine2 || '',
-      city: client?.city || '',
-      postcode: client?.postcode || '',
-      country: client?.country || '',
+      // Address fields removed - managed in addresses state
       contractStartDate: client?.contractStartDate
         ? client.contractStartDate.toISOString().split('T')[0]
         : today,
@@ -330,6 +336,17 @@ export function ClientForm({
         description: contact.description || undefined,
       }));
 
+      // Build addresses array with proper typing
+      const addressesArray: AddressInput[] = addresses.map(address => ({
+        type: address.type,
+        addressLine1: address.addressLine1,
+        addressLine2: address.addressLine2 || undefined,
+        city: address.city,
+        postcode: address.postcode,
+        country: address.country,
+        description: address.description || undefined,
+      }));
+
       const submitData: CreateClientDto = {
         clientType: data.clientType,
         companyName: data.companyName,
@@ -338,11 +355,7 @@ export function ClientForm({
         serviceTier: data.serviceTier,
         monthlyRetainer: data.monthlyRetainer,
         contacts: contactsArray,
-        addressLine1: data.addressLine1 || undefined,
-        addressLine2: data.addressLine2 || undefined,
-        city: data.city || undefined,
-        postcode: data.postcode || undefined,
-        country: data.country || undefined,
+        addresses: addressesArray.length > 0 ? addressesArray : undefined,
         contractStartDate:
           data.contractStartDate && data.contractStartDate !== ''
             ? new Date(data.contractStartDate)
@@ -464,6 +477,46 @@ export function ClientForm({
     const updated = [...contacts];
     updated[index] = { ...updated[index], [field]: value };
     setContacts(updated);
+  };
+
+  // Address management functions
+  const addAddress = () => {
+    setAddresses([...addresses, {
+      type: 'SERVICE',
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      postcode: '',
+      country: 'United Kingdom',
+      description: '',
+      saved: false // New address starts as unsaved
+    }]);
+  };
+
+  const saveAddress = (index: number) => {
+    const updated = [...addresses];
+    updated[index] = { ...updated[index], saved: true };
+    setAddresses(updated);
+    // Auto-open the newly saved address in the accordion
+    setOpenAddressAccordion([...openAddressAccordion, `address-${index}`]);
+  };
+
+  const removeAddress = (index: number) => {
+    setAddresses(addresses.filter((_, i) => i !== index));
+    // Close accordion if the removed address was open
+    if (openAddressAccordion.includes(`address-${index}`)) {
+      setOpenAddressAccordion(openAddressAccordion.filter(id => id !== `address-${index}`));
+    }
+  };
+
+  const updateAddress = (
+    index: number,
+    field: 'type' | 'addressLine1' | 'addressLine2' | 'city' | 'postcode' | 'country' | 'description',
+    value: string
+  ) => {
+    const updated = [...addresses];
+    updated[index] = { ...updated[index], [field]: value };
+    setAddresses(updated);
   };
 
   const toggleInScopeService = (service: string) => {
@@ -804,24 +857,48 @@ export function ClientForm({
                 >
                   {contacts.map((contact, index) =>
                     contact.saved ? (
-                      <AccordionItem key={index} value={`contact-${index}`}>
+                      <AccordionItem key={index} value={`contact-${index}`} className="border-l-2 border-primary pl-6 border-b-0 mb-4">
                         <AccordionTrigger className="hover:no-underline">
                           <div className="flex items-center gap-4 w-full pr-4 text-left text-sm">
-                            <div className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-primary text-primary font-semibold text-sm">
-                              {contacts.filter(c => c.saved).indexOf(contact) + 1}
-                            </div>
-                            <span className="flex-1">
-                              <span className="text-muted-foreground">Contact Type:</span>{' '}
-                              <span className="font-medium">{contact.type === 'SERVICE' ? 'Service' : 'Invoice'}</span>
+                            <span className="w-28 flex-shrink-0">
+                              <Badge
+                                className={`w-20 ${
+                                  contact.type === 'SERVICE'
+                                    ? 'bg-green-800 text-white border-green-800'
+                                    : 'bg-white text-green-800 border-green-800'
+                                }`}
+                              >
+                                {contact.type === 'SERVICE' ? 'Service' : 'Invoice'}
+                              </Badge>
                             </span>
                             <span className="flex-1">
-                              <span className="text-muted-foreground">Contact Name:</span>{' '}
+                              <span className="text-gray-500 font-semibold">Name:</span>{' '}
                               <span className="font-medium">{contact.name || `Contact ${index + 1}`}</span>
+                            </span>
+                            <span className="flex-1">
+                              {contact.phone ? (
+                                <>
+                                  <span className="text-gray-500 font-semibold">Tel:</span>{' '}
+                                  <span className="font-medium">{contact.phone}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">No tel specified</span>
+                              )}
+                            </span>
+                            <span className="flex-1">
+                              {contact.email ? (
+                                <>
+                                  <span className="text-gray-500 font-semibold">Email:</span>{' '}
+                                  <span className="font-medium">{contact.email}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">No email specified</span>
+                              )}
                             </span>
                             <span className="flex-1">
                               {contact.role ? (
                                 <>
-                                  <span className="text-muted-foreground">Contact Role:</span>{' '}
+                                  <span className="text-gray-500 font-semibold">Role:</span>{' '}
                                   <span className="font-medium">{contact.role}</span>
                                 </>
                               ) : (
@@ -1072,23 +1149,16 @@ export function ClientForm({
               )}
 
               {/* Create New Contact Button */}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={addContact}
                 disabled={isSubmitting || isLoading || contacts.some(c => !c.saved)}
-                className={`
-                  w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed
-                  transition-all duration-200
-                  ${
-                    isSubmitting || isLoading || contacts.some(c => !c.saved)
-                      ? 'border-muted-foreground/30 text-muted-foreground cursor-not-allowed opacity-50'
-                      : 'border-primary/50 text-primary hover:border-primary hover:bg-primary/5 cursor-pointer'
-                  }
-                `}
+                className="text-primary hover:text-primary hover:bg-primary/10"
               >
                 <Plus className="h-5 w-5" />
-                <span className="font-medium">Create New Contact</span>
-              </button>
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -1102,81 +1172,327 @@ export function ClientForm({
                 Address Information
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine1">
-                    Address Line 1 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="addressLine1"
-                    {...form.register('addressLine1')}
-                    disabled={isSubmitting || isLoading}
-                    placeholder="Street address"
-                  />
-                  {form.formState.errors.addressLine1 && (
-                    <p className="text-sm text-red-500">{form.formState.errors.addressLine1.message}</p>
-                  )}
-                </div>
+            <CardContent className="space-y-4">
+              {/* Saved Addresses (Accordion) */}
+              {addresses.filter(a => a.saved).length > 0 && (
+                <Accordion
+                  type="multiple"
+                  className="w-full"
+                  value={openAddressAccordion}
+                  onValueChange={setOpenAddressAccordion}
+                >
+                  {addresses.map((address, index) =>
+                    address.saved ? (
+                      <AccordionItem key={index} value={`address-${index}`} className="border-l-2 border-primary pl-6 border-b-0 mb-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-4 w-full pr-4 text-left text-sm">
+                            <span className="w-28 flex-shrink-0">
+                              <Badge
+                                className={`w-20 ${
+                                  address.type === 'SERVICE'
+                                    ? 'bg-green-800 text-white border-green-800'
+                                    : 'bg-white text-green-800 border-green-800'
+                                }`}
+                              >
+                                {address.type === 'SERVICE' ? 'Service' : 'Invoice'}
+                              </Badge>
+                            </span>
+                            <span className="flex-1">
+                              <span className="text-gray-500 font-semibold">Address:</span>{' '}
+                              <span className="font-medium">
+                                {[
+                                  address.addressLine1,
+                                  address.addressLine2,
+                                  address.city,
+                                  address.postcode,
+                                  address.country
+                                ].filter(Boolean).join(', ') || `Address ${index + 1}`}
+                              </span>
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-4 pt-4">
+                            {/* Address Type and Delete Button Row */}
+                            <div className="flex gap-2">
+                              <div className="space-y-2 flex-1">
+                                <Label htmlFor={`address-type-${index}`}>
+                                  Address Type <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                  value={address.type}
+                                  onValueChange={(value) => updateAddress(index, 'type', value)}
+                                  disabled={isSubmitting || isLoading}
+                                >
+                                  <SelectTrigger id={`address-type-${index}`}>
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="SERVICE">Service Address</SelectItem>
+                                    <SelectItem value="INVOICE">Invoice Address</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine2">Address Line 2</Label>
-                  <Input
-                    id="addressLine2"
-                    {...form.register('addressLine2')}
-                    disabled={isSubmitting || isLoading}
-                    placeholder="Apartment, suite, etc."
-                  />
-                  {form.formState.errors.addressLine2 && (
-                    <p className="text-sm text-red-500">{form.formState.errors.addressLine2.message}</p>
-                  )}
-                </div>
+                              <div className="space-y-2">
+                                <Label className="invisible">Delete</Label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeAddress(index)}
+                                  disabled={isSubmitting || isLoading}
+                                  className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="city">
-                    City <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="city"
-                    {...form.register('city')}
-                    disabled={isSubmitting || isLoading}
-                    placeholder="City"
-                  />
-                  {form.formState.errors.city && (
-                    <p className="text-sm text-red-500">{form.formState.errors.city.message}</p>
-                  )}
-                </div>
+                            {/* Address Line 1 and 2 */}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor={`address-line1-${index}`}>
+                                  Address Line 1 <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id={`address-line1-${index}`}
+                                  value={address.addressLine1}
+                                  onChange={(e) => updateAddress(index, 'addressLine1', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="Street address"
+                                />
+                              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="postcode">
-                    Postcode <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="postcode"
-                    {...form.register('postcode')}
-                    disabled={isSubmitting || isLoading}
-                    placeholder="Postcode"
-                  />
-                  {form.formState.errors.postcode && (
-                    <p className="text-sm text-red-500">{form.formState.errors.postcode.message}</p>
-                  )}
-                </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`address-line2-${index}`}>Address Line 2</Label>
+                                <Input
+                                  id={`address-line2-${index}`}
+                                  value={address.addressLine2}
+                                  onChange={(e) => updateAddress(index, 'addressLine2', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="Apartment, suite, etc."
+                                />
+                              </div>
+                            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="country">
-                    Country <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="country"
-                    {...form.register('country')}
-                    disabled={isSubmitting || isLoading}
-                    placeholder="United Kingdom"
-                  />
-                  {form.formState.errors.country && (
-                    <p className="text-sm text-red-500">{form.formState.errors.country.message}</p>
+                            {/* City and Postcode */}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor={`address-city-${index}`}>
+                                  City <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id={`address-city-${index}`}
+                                  value={address.city}
+                                  onChange={(e) => updateAddress(index, 'city', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="City"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor={`address-postcode-${index}`}>
+                                  Postcode <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id={`address-postcode-${index}`}
+                                  value={address.postcode}
+                                  onChange={(e) => updateAddress(index, 'postcode', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="Postcode"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Country and Description */}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor={`address-country-${index}`}>
+                                  Country <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id={`address-country-${index}`}
+                                  value={address.country}
+                                  onChange={(e) => updateAddress(index, 'country', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="United Kingdom"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor={`address-description-${index}`}>Description</Label>
+                                <Input
+                                  id={`address-description-${index}`}
+                                  value={address.description}
+                                  onChange={(e) => updateAddress(index, 'description', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="Additional notes about this address"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ) : null
                   )}
+                </Accordion>
+              )}
+
+              {/* Unsaved Address (Direct Form) */}
+              {addresses.find(a => !a.saved) && (
+                <div className="space-y-4">
+                  {addresses.filter(a => !a.saved).map((address) => {
+                    const index = addresses.indexOf(address);
+                    return (
+                      <div key={index} className="space-y-4 p-4 border border-primary/20 rounded-lg bg-primary/5">
+                        {/* Address Type and Delete Button Row */}
+                        <div className="flex gap-2">
+                          <div className="space-y-2 flex-1">
+                            <Label htmlFor={`address-type-${index}`}>
+                              Address Type <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              value={address.type}
+                              onValueChange={(value) => updateAddress(index, 'type', value)}
+                              disabled={isSubmitting || isLoading}
+                            >
+                              <SelectTrigger id={`address-type-${index}`}>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="SERVICE">Service Address</SelectItem>
+                                <SelectItem value="INVOICE">Invoice Address</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="invisible">Delete</Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeAddress(index)}
+                              disabled={isSubmitting || isLoading}
+                              className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Address Line 1 and 2 */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`address-line1-${index}`}>
+                              Address Line 1 <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`address-line1-${index}`}
+                              value={address.addressLine1}
+                              onChange={(e) => updateAddress(index, 'addressLine1', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="Street address"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`address-line2-${index}`}>Address Line 2</Label>
+                            <Input
+                              id={`address-line2-${index}`}
+                              value={address.addressLine2}
+                              onChange={(e) => updateAddress(index, 'addressLine2', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="Apartment, suite, etc."
+                            />
+                          </div>
+                        </div>
+
+                        {/* City and Postcode */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`address-city-${index}`}>
+                              City <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`address-city-${index}`}
+                              value={address.city}
+                              onChange={(e) => updateAddress(index, 'city', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="City"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`address-postcode-${index}`}>
+                              Postcode <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`address-postcode-${index}`}
+                              value={address.postcode}
+                              onChange={(e) => updateAddress(index, 'postcode', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="Postcode"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Country and Description */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`address-country-${index}`}>
+                              Country <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`address-country-${index}`}
+                              value={address.country}
+                              onChange={(e) => updateAddress(index, 'country', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="United Kingdom"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`address-description-${index}`}>Description</Label>
+                            <Input
+                              id={`address-description-${index}`}
+                              value={address.description}
+                              onChange={(e) => updateAddress(index, 'description', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="Additional notes about this address"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Save Address Button */}
+                        <div className="flex justify-end pt-4 border-t border-primary/20">
+                          <Button
+                            type="button"
+                            onClick={() => saveAddress(index)}
+                            disabled={isSubmitting || isLoading}
+                            className="min-w-[150px]"
+                          >
+                            Save Address
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
+
+              {/* Create New Address Button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={addAddress}
+                disabled={isSubmitting || isLoading || addresses.some(a => !a.saved)}
+                className="text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
             </CardContent>
           </Card>
         )}

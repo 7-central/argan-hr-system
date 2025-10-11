@@ -259,9 +259,9 @@ export function OptimisticClientList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center">
+                <TableHead className="text-left">
                   <button
-                    className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                    className="flex items-center justify-start w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
                     onClick={() => handleSort('companyName')}
                   >
                     Client
@@ -312,8 +312,8 @@ export function OptimisticClientList({
                       transition-all duration-200
                     `}
                   >
-                    <TableCell className="font-medium text-center">
-                      <div className="flex flex-col items-center">
+                    <TableCell className="font-medium text-left">
+                      <div className="flex flex-col items-start">
                         <span className={client.status === 'INACTIVE' ? 'line-through' : ''}>
                           {client.companyName}
                         </span>

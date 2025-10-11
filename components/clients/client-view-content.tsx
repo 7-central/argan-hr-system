@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { ContactType } from '@prisma/client';
+import { ContactType, AddressType } from '@prisma/client';
 import {
   Building2,
   CheckCircle,
@@ -28,7 +28,7 @@ import {
   AVAILABLE_SERVICES_OUT_OF_SCOPE,
 } from '@/lib/constants/contract';
 
-import { ContactDisplay } from '@/components/clients/contact-tabs';
+import { ContactDisplay, AddressDisplay } from '@/components/clients/contact-tabs';
 import { SectorSelect } from '@/components/forms/sector-select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +51,16 @@ interface Contact {
   phone: string | null;
   role: string | null;
   type: ContactType;
+}
+
+interface Address {
+  id: number;
+  type: AddressType;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  postcode: string;
+  country: string;
 }
 
 interface Contract {
@@ -116,6 +126,7 @@ interface Client {
   lastPriceIncrease: string | null;
   externalAudit: boolean;
   contacts: Contact[];
+  addresses: Address[];
   contracts: Contract[];
   audits: Audit[];
 }
@@ -211,19 +222,15 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
     client.lastPriceIncrease ? new Date(client.lastPriceIncrease).toISOString().split('T')[0] : ''
   );
 
-  // Address state
-  const [addressLine1, setAddressLine1] = useState(client.addressLine1 || '');
-  const [addressLine2, setAddressLine2] = useState(client.addressLine2 || '');
-  const [city, setCity] = useState(client.city || '');
-  const [postcode, setPostcode] = useState(client.postcode || '');
-  const [country, setCountry] = useState(client.country || '');
-
   // External audit state
   const [externalAudit, setExternalAudit] = useState(client.externalAudit);
   const [audits, setAudits] = useState(client.audits || []);
 
   // Contact state
   const [contacts, setContacts] = useState(client.contacts || []);
+
+  // Address state
+  const [addresses, setAddresses] = useState(client.addresses || []);
 
   // Contract state
   const [contractStartDate, setContractStartDate] = useState(
@@ -303,7 +310,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
 
     try {
       const result = await deleteContact(contactId);
-      
+
       if (result.success) {
         setContacts((prevContacts) => prevContacts.filter((contact) => contact.id !== contactId));
         toast.success('Contact deleted successfully');
@@ -315,6 +322,28 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
       console.error(error);
     }
   };
+
+  // Handler for address field changes
+  const handleAddressChange = (addressId: number, field: string, value: string) => {
+    setAddresses((prevAddresses) =>
+      prevAddresses.map((address) =>
+        address.id === addressId
+          ? { ...address, [field]: value }
+          : address
+      )
+    );
+  };
+
+  // Handler for address deletion
+  const handleAddressDelete = async (_addressId: number) => {
+    if (!confirm('Are you sure you want to delete this address?')) {
+      return;
+    }
+
+    // For now, just show a message that this feature needs address actions
+    toast.info('Address deletion will be available once address actions are implemented');
+  };
+
   // Handler for audit field changes
   const handleAuditChange = (auditId: number, field: string, value: string) => {
     setAudits((prevAudits) =>
@@ -354,11 +383,6 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
         serviceTier: serviceTier as 'TIER_1' | 'DOC_ONLY' | 'AD_HOC',
         monthlyRetainer: monthlyRetainer ? parseFloat(monthlyRetainer) : undefined,
         status: status as 'ACTIVE' | 'INACTIVE' | 'PENDING',
-        addressLine1: addressLine1 || undefined,
-        addressLine2: addressLine2 || undefined,
-        city: city || undefined,
-        postcode: postcode || undefined,
-        country: country || undefined,
         externalAudit,
         paymentMethod: paymentMethod as 'DIRECT_DEBIT' | 'INVOICE' | undefined,
         chargeVat,
@@ -807,92 +831,17 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
             )}
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Address Line 1 */}
-              <div className="space-y-2">
-                <Label htmlFor="addressLine1" className="text-sm font-medium text-muted-foreground">
-                  Address Line 1
-                </Label>
-                {editMode ? (
-                  <Input
-                    id="addressLine1"
-                    value={addressLine1}
-                    onChange={(e) => setAddressLine1(e.target.value)}
-                    className="w-full"
-                  />
-                ) : (
-                  <p className="text-base">{client.addressLine1 || '-'}</p>
-                )}
-              </div>
-
-              {/* Address Line 2 */}
-              <div className="space-y-2">
-                <Label htmlFor="addressLine2" className="text-sm font-medium text-muted-foreground">
-                  Address Line 2
-                </Label>
-                {editMode ? (
-                  <Input
-                    id="addressLine2"
-                    value={addressLine2}
-                    onChange={(e) => setAddressLine2(e.target.value)}
-                    className="w-full"
-                  />
-                ) : (
-                  <p className="text-base">{client.addressLine2 || '-'}</p>
-                )}
-              </div>
-
-              {/* City */}
-              <div className="space-y-2">
-                <Label htmlFor="city" className="text-sm font-medium text-muted-foreground">
-                  City
-                </Label>
-                {editMode ? (
-                  <Input
-                    id="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full"
-                  />
-                ) : (
-                  <p className="text-base">{client.city || '-'}</p>
-                )}
-              </div>
-
-              {/* Postcode */}
-              <div className="space-y-2">
-                <Label htmlFor="postcode" className="text-sm font-medium text-muted-foreground">
-                  Postcode
-                </Label>
-                {editMode ? (
-                  <Input
-                    id="postcode"
-                    value={postcode}
-                    onChange={(e) => setPostcode(e.target.value)}
-                    className="w-full"
-                  />
-                ) : (
-                  <p className="text-base">{client.postcode || '-'}</p>
-                )}
-              </div>
-
-              {/* Country */}
-              <div className="space-y-2">
-                <Label htmlFor="country" className="text-sm font-medium text-muted-foreground">
-                  Country
-                </Label>
-                {editMode ? (
-                  <Input
-                    id="country"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="w-full"
-                  />
-                ) : (
-                  <p className="text-base">{client.country || '-'}</p>
-                )}
-              </div>
-            </div>
+            <AddressDisplay
+              addresses={addresses}
+              editMode={editMode}
+              onAddressChange={handleAddressChange}
+              onAddressDelete={handleAddressDelete}
+              clientId={client.id}
+              onAddressAdded={(newAddress) => {
+                setAddresses([...addresses, newAddress]);
+                router.refresh();
+              }}
+            />
           </CardContent>
         </Card>
       </TabsContent>

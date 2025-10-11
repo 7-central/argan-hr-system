@@ -30,56 +30,69 @@ export default async function ClientDocumentsPage({
   const client = await clientService.getClientById(Number(id));
   const clientName = client.companyName;
 
-  // Placeholder data - will be replaced with actual data later
-  // Document IDs use format: INT-{batch}-{record} (e.g., INT-001-001)
-  // Batch 001 = documents 001-999, Batch 002 = documents 001-999, etc.
+  // Placeholder data - will be replaced with S3 bucket data
+  // These documents represent files stored in S3 organized by client folders
   const documents = [
     {
-      id: 'INT-001-001',
-      type: 'Policy',
-      version: 'V1.2',
-      title: 'Employee Handbook 2024',
-      uploadedAt: new Date('2024-01-15T10:30:00'),
-    },
-    {
-      id: 'INT-001-002',
+      id: 'DOC-001',
       type: 'Contract',
-      version: 'V2.0',
-      title: 'Standard Service Agreement',
-      uploadedAt: new Date('2024-02-20T14:45:00'),
-    },
-    {
-      id: 'INT-001-003',
-      type: 'Template',
       version: 'V1.0',
-      title: 'NDA Template - Standard',
-      uploadedAt: new Date('2024-03-10T09:15:00'),
+      title: 'Service Agreement 2024.pdf',
+      uploadedAt: new Date('2024-03-15T10:30:00'),
     },
     {
-      id: 'INT-001-004',
+      id: 'DOC-002',
+      type: 'Policy',
+      version: 'V2.1',
+      title: 'Employee Handbook.pdf',
+      uploadedAt: new Date('2024-03-10T14:45:00'),
+    },
+    {
+      id: 'DOC-003',
+      type: 'Payroll',
+      version: 'V1.0',
+      title: 'Payroll Summary March 2024.xlsx',
+      uploadedAt: new Date('2024-03-08T09:15:00'),
+    },
+    {
+      id: 'DOC-004',
       type: 'Policy',
       version: 'V1.5',
-      title: 'GDPR Compliance Guide',
-      uploadedAt: new Date('2024-01-25T11:20:00'),
+      title: 'Health & Safety Policy.pdf',
+      uploadedAt: new Date('2024-02-28T11:20:00'),
     },
     {
-      id: 'INT-001-005',
+      id: 'DOC-005',
+      type: 'Training',
+      version: 'V1.0',
+      title: 'Training Records Q1 2024.xlsx',
+      uploadedAt: new Date('2024-02-15T16:00:00'),
+    },
+    {
+      id: 'DOC-006',
+      type: 'Contract',
+      version: 'V1.2',
+      title: 'NDA Standard Template.docx',
+      uploadedAt: new Date('2024-02-10T08:30:00'),
+    },
+    {
+      id: 'DOC-007',
       type: 'Form',
-      version: 'V1.1',
-      title: 'Client Onboarding Form',
-      uploadedAt: new Date('2024-02-05T16:00:00'),
+      version: 'V1.0',
+      title: 'Client Onboarding Checklist.pdf',
+      uploadedAt: new Date('2024-01-25T13:15:00'),
     },
     {
-      id: 'INT-001-006',
-      type: 'Template',
-      version: 'V2.3',
-      title: 'Monthly Retainer Invoice Template',
-      uploadedAt: new Date('2024-03-15T08:30:00'),
+      id: 'DOC-008',
+      type: 'Compliance',
+      version: 'V2.0',
+      title: 'GDPR Compliance Report 2024.pdf',
+      uploadedAt: new Date('2024-01-20T10:45:00'),
     },
   ];
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-4 p-4 bg-gray-50 min-h-screen">
       {/* Breadcrumbs */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -96,7 +109,7 @@ export default async function ClientDocumentsPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Documents Repository</BreadcrumbPage>
+            <BreadcrumbPage>Internal Documents Repository</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -110,7 +123,7 @@ export default async function ClientDocumentsPage({
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Documents Repository</h1>
+            <h1 className="text-3xl font-bold">Internal Documents Repository</h1>
             <p className="text-sm text-muted-foreground">{clientName}</p>
           </div>
         </div>

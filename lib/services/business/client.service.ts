@@ -171,8 +171,8 @@ export class ClientService {
       ? {
           OR: [
             { companyName: { contains: search, mode: 'insensitive' as const } },
-            { contactEmail: { contains: search, mode: 'insensitive' as const } },
-            { contactName: { contains: search, mode: 'insensitive' as const } },
+            { businessId: { contains: search, mode: 'insensitive' as const } },
+            { sector: { contains: search, mode: 'insensitive' as const } },
           ],
         }
       : {};
@@ -195,14 +195,6 @@ export class ClientService {
           sector: true,
           serviceTier: true,
           monthlyRetainer: true,
-          contactName: true,
-          contactEmail: true,
-          contactPhone: true,
-          addressLine1: true,
-          addressLine2: true,
-          city: true,
-          postcode: true,
-          country: true,
           contractStartDate: true,
           contractRenewalDate: true,
           status: true,
@@ -255,7 +247,12 @@ export class ClientService {
       include: {
         contacts: {
           orderBy: {
-            type: 'asc', // PRIMARY, SECONDARY, INVOICE
+            type: 'asc', // SERVICE, INVOICE
+          },
+        },
+        addresses: {
+          orderBy: {
+            type: 'asc', // SERVICE, INVOICE
           },
         },
         contracts: {
@@ -309,13 +306,6 @@ export class ClientService {
       throw new FieldValidationError(errors);
     }
 
-    // Check for duplicate emails in contacts (if any provided)
-    if (data.contacts && data.contacts.length > 0) {
-      for (const contact of data.contacts) {
-        await this.checkDuplicateEmail(contact.email);
-      }
-    }
-
     // Create client and contacts in a transaction
     const client = await this.db.$transaction(async (tx) => {
       // Conditional payment method onboarding fields
@@ -338,10 +328,6 @@ export class ClientService {
       // If paymentMethod is null/undefined, all remain null (N/A)
 
       // Create the client
-      // Note: contactName/contactEmail/contactPhone are legacy fields kept for backward compatibility
-      // We populate them with first contact data if available, otherwise use placeholder
-      const firstContact = data.contacts && data.contacts.length > 0 ? data.contacts[0] : null;
-
       const newClient = await tx.client.create({
         data: {
           clientType: data.clientType || 'COMPANY',
@@ -350,14 +336,6 @@ export class ClientService {
           sector: data.sector || null,
           serviceTier: data.serviceTier,
           monthlyRetainer: data.monthlyRetainer || null,
-          contactName: firstContact?.name || 'No Contact',
-          contactEmail: firstContact?.email || 'noreply@placeholder.com',
-          contactPhone: firstContact?.phone || null,
-          addressLine1: data.addressLine1 || null,
-          addressLine2: data.addressLine2 || null,
-          city: data.city || null,
-          postcode: data.postcode || null,
-          country: data.country || null,
           contractStartDate: data.contractStartDate || null,
           contractRenewalDate: data.contractRenewalDate || null,
           status: data.status || 'ACTIVE',
@@ -383,6 +361,24 @@ export class ClientService {
               phone: contact.phone || null,
               role: contact.role || null,
               description: contact.description || null,
+            },
+          });
+        }
+      }
+
+      // Create addresses from array (new system: SERVICE or INVOICE types)
+      if (data.addresses && data.addresses.length > 0) {
+        for (const address of data.addresses) {
+          await tx.clientAddress.create({
+            data: {
+              clientId: newClient.id,
+              type: address.type,
+              addressLine1: address.addressLine1,
+              addressLine2: address.addressLine2 || null,
+              city: address.city,
+              postcode: address.postcode,
+              country: address.country,
+              description: address.description || null,
             },
           });
         }
@@ -478,27 +474,12 @@ export class ClientService {
     if (data.companyName !== undefined && !data.companyName) {
       errors.push({ field: 'companyName', message: 'Company name cannot be empty' });
     }
-    if (data.contactName !== undefined && !data.contactName) {
-      errors.push({ field: 'contactName', message: 'Contact name cannot be empty' });
-    }
-    if (data.contactEmail !== undefined) {
-      if (!data.contactEmail) {
-        errors.push({ field: 'contactEmail', message: 'Contact email cannot be empty' });
-      } else if (!this.isValidEmail(data.contactEmail)) {
-        errors.push({ field: 'contactEmail', message: 'Invalid email format' });
-      }
-    }
     if (data.serviceTier !== undefined && !data.serviceTier) {
       errors.push({ field: 'serviceTier', message: 'Service tier cannot be empty' });
     }
 
     if (errors.length > 0) {
       throw new FieldValidationError(errors);
-    }
-
-    // Check for duplicate email if email is being changed
-    if (data.contactEmail && data.contactEmail !== existingClient.contactEmail) {
-      await this.checkDuplicateEmail(data.contactEmail, id);
     }
 
     // Update client
@@ -511,14 +492,6 @@ export class ClientService {
         sector: data.sector !== undefined ? data.sector : undefined,
         serviceTier: data.serviceTier,
         monthlyRetainer: data.monthlyRetainer !== undefined ? data.monthlyRetainer : undefined,
-        contactName: data.contactName,
-        contactEmail: data.contactEmail,
-        contactPhone: data.contactPhone !== undefined ? data.contactPhone : undefined,
-        addressLine1: data.addressLine1 !== undefined ? data.addressLine1 : undefined,
-        addressLine2: data.addressLine2 !== undefined ? data.addressLine2 : undefined,
-        city: data.city !== undefined ? data.city : undefined,
-        postcode: data.postcode !== undefined ? data.postcode : undefined,
-        country: data.country !== undefined ? data.country : undefined,
         contractStartDate:
           data.contractStartDate !== undefined ? data.contractStartDate : undefined,
         contractRenewalDate:
@@ -586,26 +559,6 @@ export class ClientService {
    */
   private isValidEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  /**
-   * Private helper: Check for duplicate email
-   */
-  private async checkDuplicateEmail(email: string, excludeId?: number): Promise<void> {
-    const existingClient = await this.db.client.findFirst({
-      where: {
-        contactEmail: email,
-        status: 'ACTIVE',
-        ...(excludeId && { id: { not: excludeId } }),
-      },
-    });
-
-    if (existingClient) {
-      const message = excludeId
-        ? `Another client with email ${email} already exists`
-        : `A client with email ${email} already exists`;
-      throw new ValidationError(message);
-    }
   }
 }
 

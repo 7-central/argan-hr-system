@@ -23,7 +23,6 @@ export async function RecentClients() {
                 <div className="ml-4 space-y-1">
                   <p className="text-sm font-medium leading-none">{client.companyName}</p>
                   <p className="text-sm text-muted-foreground">
-                    {client.contactEmail} •{' '}
                     {client.serviceTier === 'TIER_1'
                       ? 'Tier 1'
                       : client.serviceTier === 'DOC_ONLY'

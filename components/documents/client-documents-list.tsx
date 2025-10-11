@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
-import { Building2, Plus, Upload, Eye } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+import { Plus, Upload, Eye } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +15,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import type { Client } from '@/lib/types/client';
@@ -26,8 +36,11 @@ interface ClientDocumentsListProps {
  * Displays list of clients with document action buttons
  */
 export function ClientDocumentsList({ clients }: ClientDocumentsListProps) {
+  const router = useRouter();
   const [comingSoonDialogOpen, setComingSoonDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<string>('');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Handle new document
@@ -42,9 +55,31 @@ export function ClientDocumentsList({ clients }: ClientDocumentsListProps) {
    * Handle upload document
    */
   const handleUploadDocument = (client: Client) => {
-    console.log('Upload document for client:', client.companyName);
-    setDialogAction('Upload Document');
-    setComingSoonDialogOpen(true);
+    // Trigger the file input click immediately for better responsiveness
+    fileInputRef.current?.click();
+    // Set the selected client for when the file is chosen
+    setSelectedClient(client);
+  };
+
+  /**
+   * Handle file selection
+   */
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && selectedClient) {
+      console.log('File selected:', file.name, 'for client:', selectedClient.companyName);
+      // TODO: Handle file upload logic here
+      // For now, just log the file details
+      console.log('File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+    }
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   /**
@@ -58,82 +93,106 @@ export function ClientDocumentsList({ clients }: ClientDocumentsListProps) {
 
   return (
     <Card className="border-0 shadow-none">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Building2 className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold text-primary">Client Documents</h2>
-        </div>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-left text-primary text-base font-semibold">
+                Client Name
+              </TableHead>
+              <TableHead className="text-center text-primary text-base font-semibold">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {clients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={2} className="h-24 text-center">
+                  <div>
+                    <p className="text-lg font-semibold">No clients found</p>
+                    <p className="text-sm text-muted-foreground">
+                      Add clients to start managing their documents
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              clients.map((client) => (
+                <TableRow
+                  key={client.id}
+                  onClick={() => router.push(`/admin/documents/client/${client.id}`)}
+                  className="cursor-pointer hover:bg-muted/50 transition-all duration-200"
+                >
+                  {/* Client Name */}
+                  <TableCell className="font-medium text-left">
+                    {client.companyName}
+                  </TableCell>
 
-        {clients.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No clients found</p>
-            <p className="text-sm mt-1">Add clients to start managing their documents</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {clients.map((client) => (
-              <div
-                key={client.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-              >
-                {/* Client Name */}
-                <div className="flex items-center gap-3">
-                  <Building2 className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{client.companyName}</span>
-                </div>
+                  {/* Actions */}
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-muted transition-colors"
+                            onClick={() => handleViewAllDocuments(client)}
+                          >
+                            <Eye className="h-4 w-4 text-black" />
+                            <span className="sr-only">View All Documents</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>View All Documents</TooltipContent>
+                      </Tooltip>
 
-                {/* Action Icons */}
-                <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 hover:bg-muted"
-                        onClick={() => handleViewAllDocuments(client)}
-                      >
-                        <Eye className="h-5 w-5 text-black" />
-                        <span className="sr-only">View All Documents</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>View All Documents</TooltipContent>
-                  </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-purple-600 hover:text-purple-500 transition-colors"
+                            onClick={() => handleUploadDocument(client)}
+                          >
+                            <Upload className="h-4 w-4" />
+                            <span className="sr-only">Upload Document</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Upload Document</TooltipContent>
+                      </Tooltip>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-purple-600 hover:text-purple-500 hover:bg-purple-50"
-                        onClick={() => handleUploadDocument(client)}
-                      >
-                        <Upload className="h-5 w-5" />
-                        <span className="sr-only">Upload Document</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Upload Document</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-green-500 hover:text-green-400 hover:bg-green-50"
-                        onClick={() => handleNewDocument(client)}
-                      >
-                        <Plus className="h-5 w-5" />
-                        <span className="sr-only">Create New Document</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Create New Document</TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-green-500 hover:text-green-400 transition-colors"
+                            onClick={() => handleNewDocument(client)}
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span className="sr-only">Create New Document</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Create New Document</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </CardContent>
+
+      {/* Hidden file input for upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileChange}
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+      />
 
       {/* Coming Soon Dialog */}
       <Dialog open={comingSoonDialogOpen} onOpenChange={setComingSoonDialogOpen}>

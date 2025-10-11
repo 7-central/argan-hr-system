@@ -29,14 +29,14 @@ export default async function DocumentsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Document Management</BreadcrumbPage>
+            <BreadcrumbPage>Client Documents</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Document Management</h1>
+        <h1 className="text-3xl font-bold">Client Documents</h1>
       </div>
 
       {/* Client Search and Documents List */}

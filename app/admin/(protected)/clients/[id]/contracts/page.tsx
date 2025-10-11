@@ -1,12 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeft } from 'lucide-react';
 
 import { getClientContracts } from '@/lib/actions/contract.actions';
 import { clientService } from '@/lib/services/business/client.service';
 
-import { ContractSearch } from '@/components/contracts/contract-search';
 import { ContractsList } from '@/components/contracts/contracts-list';
 import {
   Breadcrumb,
@@ -78,9 +77,16 @@ export default async function ContractsPage({ params }: ContractsPageProps) {
 
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{client.companyName}</h1>
-          <p className="text-muted-foreground">Client Contracts</p>
+        <div className="flex items-center gap-4">
+          <Link href="/admin/clients">
+            <Button variant="outline" size="icon" className="h-10 w-10">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">{client.companyName}</h1>
+            <p className="text-muted-foreground">Client Contracts</p>
+          </div>
         </div>
         <Link href={`/admin/clients/${clientId}/contracts/new`}>
           <Button className="w-[180px]">
@@ -89,9 +95,6 @@ export default async function ContractsPage({ params }: ContractsPageProps) {
           </Button>
         </Link>
       </div>
-
-      {/* Search Bar */}
-      <ContractSearch />
 
       {/* Contracts Table */}
       {contracts.length === 0 ? (

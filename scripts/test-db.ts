@@ -35,7 +35,6 @@ async function testDatabase() {
       select: {
         companyName: true,
         serviceTier: true,
-        contactEmail: true,
       },
       take: 3,
     });

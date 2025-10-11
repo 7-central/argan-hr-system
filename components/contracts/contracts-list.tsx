@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink } from 'lucide-react';
 
 import { ContractActionsMenu } from '@/components/contracts/contract-actions-menu';
+import { ContractSearch } from '@/components/contracts/contract-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,8 +83,13 @@ type SortColumn = 'version' | 'contractNumber' | 'status';
  * Displays all contracts for a client with actions and sorting
  */
 export function ContractsList({ contracts, clientId }: ContractsListProps) {
+  const router = useRouter();
+
   // Find the current active contract
   const activeContract = contracts.find((c) => c.status === 'ACTIVE') || null;
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<SortColumn>('status');
@@ -111,9 +119,27 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
     );
   };
 
+  // Filter contracts based on search term
+  const filteredContracts = useMemo(() => {
+    if (!searchTerm.trim()) return contracts;
+
+    const lowerSearch = searchTerm.toLowerCase();
+    return contracts.filter((contract) => {
+      // Search in contract number
+      if (contract.contractNumber.toLowerCase().includes(lowerSearch)) {
+        return true;
+      }
+      // Search in version (e.g., "v2", "2")
+      if (formatVersion(contract.version).toLowerCase().includes(lowerSearch)) {
+        return true;
+      }
+      return false;
+    });
+  }, [contracts, searchTerm]);
+
   // Sort contracts with default: status (ACTIVE > DRAFT > ARCHIVED), then version DESC
   const sortedContracts = useMemo(() => {
-    return [...contracts].sort((a, b) => {
+    return [...filteredContracts].sort((a, b) => {
       let comparison = 0;
 
       // Apply selected column sort
@@ -140,12 +166,17 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [contracts, sortColumn, sortDirection]);
+  }, [filteredContracts, sortColumn, sortDirection]);
 
   return (
-    <Card className="border-0 shadow-none">
-      <CardContent className="p-0">
-        <Table>
+    <>
+      {/* Search Bar */}
+      <ContractSearch value={searchTerm} onChange={setSearchTerm} />
+
+      {/* Contracts Table */}
+      <Card className="border-0 shadow-none">
+        <CardContent className="p-0">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="text-center">
@@ -195,7 +226,11 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
               </TableRow>
             ) : (
               sortedContracts.map((contract) => (
-                <TableRow key={contract.id}>
+                <TableRow
+                  key={contract.id}
+                  onClick={() => router.push(`/admin/clients/${clientId}/contracts/${contract.id}`)}
+                  className="cursor-pointer hover:bg-muted/50 transition-all duration-200"
+                >
                   {/* Version */}
                   <TableCell className="font-medium text-center">
                     {formatVersion(contract.version)}
@@ -214,7 +249,7 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
                   </TableCell>
 
                   {/* Active Contract URL */}
-                  <TableCell className="text-center">
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {contract.docUrl ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -235,7 +270,7 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
                   </TableCell>
 
                   {/* Signed Contract URL */}
-                  <TableCell className="text-center">
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {contract.signedContractUrl ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -256,7 +291,7 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell className="text-center">
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     <ContractActionsMenu
                       contract={contract}
                       clientId={clientId}
@@ -270,5 +305,6 @@ export function ContractsList({ contracts, clientId }: ContractsListProps) {
         </Table>
       </CardContent>
     </Card>
+    </>
   );
 }

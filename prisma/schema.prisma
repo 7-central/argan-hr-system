@@ -45,18 +45,6 @@ model Client {
   serviceTier         ServiceTier   @map("service_tier")
   monthlyRetainer     Decimal?      @map("monthly_retainer") @db.Decimal(10, 2)
 
-  // Primary Contact
-  contactName         String        @map("contact_name")
-  contactEmail        String        @map("contact_email")
-  contactPhone        String?       @map("contact_phone")
-
-  // Address
-  addressLine1        String?       @map("address_line_1")
-  addressLine2        String?       @map("address_line_2")
-  city                String?
-  postcode            String?
-  country             String?       @default("United Kingdom")
-
   // Contract
   contractStartDate   DateTime?     @map("contract_start_date") @db.Date
   contractRenewalDate DateTime?     @map("contract_renewal_date") @db.Date
@@ -90,6 +78,7 @@ model Client {
 
   // Relations
   contacts            ClientContact[]
+  addresses           ClientAddress[]
   contracts           Contract[]
   policies            Policy[]
   handbooks           Handbook[]
@@ -122,6 +111,28 @@ model ClientContact {
   @@index([clientId])
   @@index([type])
   @@map("client_contacts")
+}
+
+// Client addresses (Service, Invoice)
+model ClientAddress {
+  id           Int         @id @default(autoincrement())
+  clientId     Int         @map("client_id")
+  type         AddressType
+  addressLine1 String      @map("address_line_1")
+  addressLine2 String?     @map("address_line_2")
+  city         String
+  postcode     String
+  country      String      @default("United Kingdom")
+  description  String?     @db.Text
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([type])
+  @@map("client_addresses")
 }
 
 // Client contracts - service agreements and payment terms
@@ -294,6 +305,11 @@ enum ClientStatus {
 }
 
 enum ContactType {
+  SERVICE
+  INVOICE
+}
+
+enum AddressType {
   SERVICE
   INVOICE
 }

@@ -3,6 +3,7 @@
  * Shared across app and business layers
  */
 
+import type { AddressInput } from './address';
 import type { ContactInput } from './contact';
 import type { Client as PrismaClient } from '@prisma/client';
 
@@ -29,6 +30,9 @@ export interface CreateClientDto {
   monthlyRetainer?: number;
   // NEW: Contacts array (replaces individual contact fields)
   contacts: ContactInput[];
+  // NEW: Addresses array (replaces individual address fields)
+  addresses?: AddressInput[];
+  // Legacy address fields (kept for backward compatibility)
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
