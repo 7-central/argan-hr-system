@@ -103,23 +103,22 @@ model Client {
   @@map("clients")
 }
 
-// Client contacts (Primary, Secondary, Invoice)
+// Client contacts (Service, Invoice)
 model ClientContact {
-  id        Int         @id @default(autoincrement())
-  clientId  Int         @map("client_id")
-  type      ContactType
-  name      String
-  email     String
-  phone     String?
-  role      String?
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  id          Int         @id @default(autoincrement())
+  clientId    Int         @map("client_id")
+  type        ContactType
+  name        String
+  email       String
+  phone       String?
+  role        String?
+  description String?     @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   // Relations
-  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  // Business rule: Only one contact of each type per client
-  @@unique([clientId, type])
   @@index([clientId])
   @@index([type])
   @@map("client_contacts")
@@ -295,8 +294,7 @@ enum ClientStatus {
 }
 
 enum ContactType {
-  PRIMARY
-  SECONDARY
+  SERVICE
   INVOICE
 }
 

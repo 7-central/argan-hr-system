@@ -4,7 +4,7 @@ import { useState, useMemo, startTransition } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { Edit, UserX, UserCheck, Eye, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, FileText, Briefcase } from 'lucide-react';
+import { Edit, UserX, UserCheck, Eye, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, FileText, Briefcase, Database } from 'lucide-react';
 
 import { useOptimisticClient } from '@/lib/hooks/useOptimisticClient';
 
@@ -295,7 +295,7 @@ export function OptimisticClientList({
                     {getSortIcon('status')}
                   </button>
                 </TableHead>
-                <TableHead className="w-[260px] text-center text-primary text-base font-semibold">Actions</TableHead>
+                <TableHead className="w-[300px] text-center text-primary text-base font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -340,11 +340,11 @@ export function OptimisticClientList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:text-green-600 transition-colors"
+                              className="h-8 w-8 hover:bg-muted transition-colors"
                               onClick={() => onView?.(client)}
                               disabled={client._pending}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4 text-black" />
                               <span className="sr-only">View</span>
                             </Button>
                           </TooltipTrigger>
@@ -409,6 +409,21 @@ export function OptimisticClientList({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>View Contracts</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-orange-500 hover:text-orange-600 transition-colors"
+                              onClick={() => router.push(`/admin/clients/${client.id}/documents`)}
+                              disabled={client._pending || client.status === 'INACTIVE'}
+                            >
+                              <Database className="h-4 w-4" />
+                              <span className="sr-only">Documents Repository</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Documents Repository</TooltipContent>
                         </Tooltip>
                         {client.status === 'ACTIVE' ? (
                           <Tooltip>

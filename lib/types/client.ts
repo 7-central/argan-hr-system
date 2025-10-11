@@ -3,6 +3,7 @@
  * Shared across app and business layers
  */
 
+import type { ContactInput } from './contact';
 import type { Client as PrismaClient } from '@prisma/client';
 
 /**
@@ -26,18 +27,8 @@ export interface CreateClientDto {
   sector?: string;
   serviceTier: 'TIER_1' | 'DOC_ONLY' | 'AD_HOC';
   monthlyRetainer?: number;
-  contactName: string;
-  contactEmail: string;
-  contactPhone?: string;
-  contactRole?: string;
-  secondaryContactName?: string;
-  secondaryContactEmail?: string;
-  secondaryContactPhone?: string;
-  secondaryContactRole?: string;
-  invoiceContactName?: string;
-  invoiceContactEmail?: string;
-  invoiceContactPhone?: string;
-  invoiceContactRole?: string;
+  // NEW: Contacts array (replaces individual contact fields)
+  contacts: ContactInput[];
   addressLine1?: string;
   addressLine2?: string;
   city?: string;

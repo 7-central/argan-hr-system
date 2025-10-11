@@ -12,7 +12,7 @@ interface ContactTabsContextValue {
 const ContactTabsContext = createContext<ContactTabsContextValue | undefined>(undefined);
 
 export function ContactTabsProvider({ children }: { children: ReactNode }) {
-  const [activeTab, setActiveTab] = useState<ContactType>('PRIMARY');
+  const [activeTab, setActiveTab] = useState<ContactType>('SERVICE');
 
   return (
     <ContactTabsContext.Provider value={{ activeTab, setActiveTab }}>

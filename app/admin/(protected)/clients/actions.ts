@@ -24,6 +24,75 @@ export async function getUniqueSectors(): Promise<string[]> {
   return clientService.getUniqueSectors();
 }
 
+/**
+ * Update a sector name across all clients
+ * Returns result object following architectural patterns
+ */
+export const updateSector = withAuth(
+  async (
+    _session,
+    oldName: string,
+    newName: string
+  ): Promise<{ success: boolean; data?: { count: number }; error?: string }> => {
+    try {
+      const count = await clientService.updateSector(oldName, newName);
+
+      return {
+        success: true,
+        data: { count },
+      };
+    } catch (error) {
+      // Handle business errors with user-friendly messages
+      if (error instanceof Error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      // Handle unexpected errors
+      return {
+        success: false,
+        error: 'An unexpected error occurred while updating the sector',
+      };
+    }
+  }
+);
+
+/**
+ * Delete a sector (sets to null for all clients using it)
+ * Returns result object following architectural patterns
+ */
+export const deleteSector = withAuth(
+  async (
+    _session,
+    name: string
+  ): Promise<{ success: boolean; data?: { count: number; deleted: boolean }; error?: string }> => {
+    try {
+      const result = await clientService.deleteSector(name);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      // Handle business errors with user-friendly messages
+      if (error instanceof Error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      // Handle unexpected errors
+      return {
+        success: false,
+        error: 'An unexpected error occurred while deleting the sector',
+      };
+    }
+  }
+);
+
 // Get clients with pagination and filtering
 export const getClients = withAuth(
   async (session, params?: GetClientsParams): Promise<SerializableClientResponse> => {

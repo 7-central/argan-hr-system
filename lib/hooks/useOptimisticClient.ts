@@ -47,12 +47,15 @@ function optimisticClientReducer(
   switch (action.type) {
     case 'CREATE': {
       const clientData = action.client as CreateClientDto;
+      // Extract primary contact from contacts array (first SERVICE contact)
+      const primaryContact = clientData.contacts?.find(c => c.type === 'SERVICE') || clientData.contacts?.[0];
+
       const optimisticClient: OptimisticClient = {
         id: action.tempId || -1,
         clientType: clientData.clientType || 'COMPANY',
         companyName: clientData.companyName || '',
-        contactName: clientData.contactName || '',
-        contactEmail: clientData.contactEmail || '',
+        contactName: primaryContact?.name || '',
+        contactEmail: primaryContact?.email || '',
         serviceTier: clientData.serviceTier || 'TIER_1',
         status: clientData.status || 'ACTIVE',
         createdAt: new Date(),
@@ -62,7 +65,7 @@ function optimisticClientReducer(
         sector: clientData.sector || null,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         monthlyRetainer: clientData.monthlyRetainer as any,
-        contactPhone: clientData.contactPhone || null,
+        contactPhone: primaryContact?.phone || null,
         addressLine1: clientData.addressLine1 || null,
         addressLine2: clientData.addressLine2 || null,
         city: clientData.city || null,

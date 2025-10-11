@@ -62,10 +62,10 @@ export function ContractActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-blue-700 hover:text-blue-500 transition-colors"
+            className="h-8 w-8 hover:bg-muted transition-colors"
             onClick={handleView}
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="h-4 w-4 text-black" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>View Contract</TooltipContent>

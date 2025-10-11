@@ -25,6 +25,12 @@ import { z } from 'zod';
 import { AVAILABLE_SERVICES_IN_SCOPE, AVAILABLE_SERVICES_OUT_OF_SCOPE } from '@/lib/constants/contract';
 
 import { VatCalculatorModal } from '@/components/modals/vat-calculator-modal';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -54,6 +60,7 @@ import { SectorSelect } from './sector-select';
 
 import type { OptimisticClientResponse } from '@/lib/hooks/useOptimisticClient';
 import type { Client, CreateClientDto } from '@/lib/types/client';
+import type { ContactInput } from '@/lib/types/contact';
 
 /**
  * Client form validation schema
@@ -85,66 +92,7 @@ const clientFormSchema = z.object({
         .min(0, 'Monthly retainer must be 0 or greater')
         .max(999999.99, 'Monthly retainer must be less than 1,000,000')
     ),
-  contactName: z
-    .string()
-    .min(1, 'Contact name is required')
-    .max(255, 'Contact name must be less than 255 characters'),
-  contactEmail: z
-    .string()
-    .min(1, 'Contact email is required')
-    .email('Invalid email format')
-    .max(255, 'Email must be less than 255 characters'),
-  contactPhone: z
-    .string()
-    .min(1, 'Contact phone is required')
-    .max(50, 'Phone number must be less than 50 characters'),
-  contactRole: z
-    .string()
-    .max(100, 'Role must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
-  secondaryContactName: z
-    .string()
-    .max(255, 'Secondary contact name must be less than 255 characters')
-    .optional()
-    .or(z.literal('')),
-  secondaryContactEmail: z
-    .string()
-    .email('Invalid email format')
-    .max(255, 'Email must be less than 255 characters')
-    .optional()
-    .or(z.literal('')),
-  secondaryContactPhone: z
-    .string()
-    .max(50, 'Phone number must be less than 50 characters')
-    .optional()
-    .or(z.literal('')),
-  secondaryContactRole: z
-    .string()
-    .max(100, 'Role must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
-  invoiceContactName: z
-    .string()
-    .max(255, 'Invoice contact name must be less than 255 characters')
-    .optional()
-    .or(z.literal('')),
-  invoiceContactEmail: z
-    .string()
-    .email('Invalid email format')
-    .max(255, 'Email must be less than 255 characters')
-    .optional()
-    .or(z.literal('')),
-  invoiceContactPhone: z
-    .string()
-    .max(50, 'Phone number must be less than 50 characters')
-    .optional()
-    .or(z.literal('')),
-  invoiceContactRole: z
-    .string()
-    .max(100, 'Role must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
+  // Contact fields removed - managed separately in state
   addressLine1: z
     .string()
     .min(1, 'Address line 1 is required')
@@ -247,9 +195,20 @@ export function ClientForm({
     auditInterval: 'QUARTERLY' | 'ANNUALLY' | 'TWO_YEARS' | 'THREE_YEARS' | 'FIVE_YEARS' | '';
     nextAuditDate: string;
   }>>([{ auditedBy: '', auditInterval: '', nextAuditDate: '' }]);
+  const [contacts, setContacts] = useState<Array<{
+    type: 'SERVICE' | 'INVOICE';
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    description: string;
+    saved: boolean; // Track if contact is saved
+  }>>([]);
   const [selectedInScopeServices, setSelectedInScopeServices] = useState<string[]>([]);
   const [selectedOutOfScopeServices, setSelectedOutOfScopeServices] = useState<string[]>([]);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [showNoContactsWarning, setShowNoContactsWarning] = useState(false);
+  const [openContactAccordion, setOpenContactAccordion] = useState<string[]>([]);
 
   // Calculate default dates
   const today = new Date().toISOString().split('T')[0];
@@ -268,18 +227,7 @@ export function ClientForm({
       serviceTier: client?.serviceTier || 'TIER_1',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       monthlyRetainer: client?.monthlyRetainer ? String(client.monthlyRetainer) : ('' as any),
-      contactName: client?.contactName || '',
-      contactEmail: client?.contactEmail || '',
-      contactPhone: client?.contactPhone || '',
-      contactRole: '',
-      secondaryContactName: '',
-      secondaryContactEmail: '',
-      secondaryContactPhone: '',
-      secondaryContactRole: '',
-      invoiceContactName: '',
-      invoiceContactEmail: '',
-      invoiceContactPhone: '',
-      invoiceContactRole: '',
+      // Contact fields removed - managed in contacts state
       addressLine1: client?.addressLine1 || '',
       addressLine2: client?.addressLine2 || '',
       city: client?.city || '',
@@ -345,6 +293,12 @@ export function ClientForm({
   }
 
   const checkStatusAndSubmit = (data: ClientFormData) => {
+    // Check for no contacts - show warning but allow proceeding
+    if (contacts.length === 0) {
+      setShowNoContactsWarning(true);
+      return;
+    }
+
     if (data.status === 'INACTIVE') {
       setShowInactiveConfirm(true);
       return;
@@ -366,6 +320,16 @@ export function ClientForm({
     setShowInactiveConfirm(false);
 
     try {
+      // Build contacts array with proper typing
+      const contactsArray: ContactInput[] = contacts.map(contact => ({
+        type: contact.type,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone || undefined,
+        role: contact.role || undefined,
+        description: contact.description || undefined,
+      }));
+
       const submitData: CreateClientDto = {
         clientType: data.clientType,
         companyName: data.companyName,
@@ -373,18 +337,7 @@ export function ClientForm({
         sector: data.sector || undefined,
         serviceTier: data.serviceTier,
         monthlyRetainer: data.monthlyRetainer,
-        contactName: data.contactName,
-        contactEmail: data.contactEmail,
-        contactPhone: data.contactPhone || undefined,
-        contactRole: data.contactRole || undefined,
-        secondaryContactName: data.secondaryContactName || undefined,
-        secondaryContactEmail: data.secondaryContactEmail || undefined,
-        secondaryContactPhone: data.secondaryContactPhone || undefined,
-        secondaryContactRole: data.secondaryContactRole || undefined,
-        invoiceContactName: data.invoiceContactName || undefined,
-        invoiceContactEmail: data.invoiceContactEmail || undefined,
-        invoiceContactPhone: data.invoiceContactPhone || undefined,
-        invoiceContactRole: data.invoiceContactRole || undefined,
+        contacts: contactsArray,
         addressLine1: data.addressLine1 || undefined,
         addressLine2: data.addressLine2 || undefined,
         city: data.city || undefined,
@@ -472,6 +425,45 @@ export function ClientForm({
     const updated = [...auditRecords];
     updated[index] = { ...updated[index], [field]: value };
     setAuditRecords(updated);
+  };
+
+  // Contact management functions
+  const addContact = () => {
+    setContacts([...contacts, {
+      type: 'SERVICE',
+      name: '',
+      email: '',
+      phone: '',
+      role: '',
+      description: '',
+      saved: false // New contact starts as unsaved
+    }]);
+  };
+
+  const saveContact = (index: number) => {
+    const updated = [...contacts];
+    updated[index] = { ...updated[index], saved: true };
+    setContacts(updated);
+    // Auto-open the newly saved contact in the accordion
+    setOpenContactAccordion([...openContactAccordion, `contact-${index}`]);
+  };
+
+  const removeContact = (index: number) => {
+    setContacts(contacts.filter((_, i) => i !== index));
+    // Close accordion if the removed contact was open
+    if (openContactAccordion.includes(`contact-${index}`)) {
+      setOpenContactAccordion(openContactAccordion.filter(id => id !== `contact-${index}`));
+    }
+  };
+
+  const updateContact = (
+    index: number,
+    field: 'type' | 'name' | 'email' | 'phone' | 'role' | 'description',
+    value: string
+  ) => {
+    const updated = [...contacts];
+    updated[index] = { ...updated[index], [field]: value };
+    setContacts(updated);
   };
 
   const toggleInScopeService = (service: string) => {
@@ -801,210 +793,302 @@ export function ClientForm({
                 Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="primary" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="primary" className="data-[state=active]:text-primary">Primary</TabsTrigger>
-                  <TabsTrigger value="secondary" className="data-[state=active]:text-primary">Secondary</TabsTrigger>
-                  <TabsTrigger value="invoice" className="data-[state=active]:text-primary">Invoice</TabsTrigger>
-                </TabsList>
+            <CardContent className="space-y-4">
+              {/* Saved Contacts (Accordion) */}
+              {contacts.filter(c => c.saved).length > 0 && (
+                <Accordion
+                  type="multiple"
+                  className="w-full"
+                  value={openContactAccordion}
+                  onValueChange={setOpenContactAccordion}
+                >
+                  {contacts.map((contact, index) =>
+                    contact.saved ? (
+                      <AccordionItem key={index} value={`contact-${index}`}>
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-4 w-full pr-4 text-left text-sm">
+                            <div className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-primary text-primary font-semibold text-sm">
+                              {contacts.filter(c => c.saved).indexOf(contact) + 1}
+                            </div>
+                            <span className="flex-1">
+                              <span className="text-muted-foreground">Contact Type:</span>{' '}
+                              <span className="font-medium">{contact.type === 'SERVICE' ? 'Service' : 'Invoice'}</span>
+                            </span>
+                            <span className="flex-1">
+                              <span className="text-muted-foreground">Contact Name:</span>{' '}
+                              <span className="font-medium">{contact.name || `Contact ${index + 1}`}</span>
+                            </span>
+                            <span className="flex-1">
+                              {contact.role ? (
+                                <>
+                                  <span className="text-muted-foreground">Contact Role:</span>{' '}
+                                  <span className="font-medium">{contact.role}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">No role specified</span>
+                              )}
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-4 pt-4">
+                            {/* Contact Type and Delete Button Row */}
+                            <div className="flex gap-2">
+                              <div className="space-y-2 flex-1">
+                                <Label htmlFor={`contact-type-${index}`}>
+                                  Contact Type <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                  value={contact.type}
+                                  onValueChange={(value) => updateContact(index, 'type', value)}
+                                  disabled={isSubmitting || isLoading}
+                                >
+                                  <SelectTrigger id={`contact-type-${index}`}>
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="SERVICE">Service Contact</SelectItem>
+                                    <SelectItem value="INVOICE">Invoice Contact</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                <TabsContent value="primary" className="space-y-4 mt-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="contactName">
-                        Name <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="contactName"
-                        {...form.register('contactName')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="Enter contact person name"
-                      />
-                      {form.formState.errors.contactName && (
-                        <p className="text-sm text-red-500">{form.formState.errors.contactName.message}</p>
-                      )}
-                    </div>
+                              <div className="space-y-2">
+                                <Label className="invisible">Delete</Label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeContact(index)}
+                                  disabled={isSubmitting || isLoading}
+                                  className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="contactEmail">
-                        Email <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="contactEmail"
-                        type="email"
-                        {...form.register('contactEmail')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="contact@company.com"
-                      />
-                      {form.formState.errors.contactEmail && (
-                        <p className="text-sm text-red-500">{form.formState.errors.contactEmail.message}</p>
-                      )}
-                    </div>
+                            {/* Name and Email */}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor={`contact-name-${index}`}>
+                                  Name <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id={`contact-name-${index}`}
+                                  value={contact.name}
+                                  onChange={(e) => updateContact(index, 'name', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="Enter contact name"
+                                />
+                              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="contactPhone">
-                        Phone <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="contactPhone"
-                        type="tel"
-                        {...form.register('contactPhone')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="+44 20 1234 5678"
-                      />
-                      {form.formState.errors.contactPhone && (
-                        <p className="text-sm text-red-500">{form.formState.errors.contactPhone.message}</p>
-                      )}
-                    </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`contact-email-${index}`}>
+                                  Email <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id={`contact-email-${index}`}
+                                  type="email"
+                                  value={contact.email}
+                                  onChange={(e) => updateContact(index, 'email', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="contact@company.com"
+                                />
+                              </div>
+                            </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="contactRole">Role</Label>
-                      <Input
-                        id="contactRole"
-                        {...form.register('contactRole')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="e.g., HR Manager"
-                      />
-                      {form.formState.errors.contactRole && (
-                        <p className="text-sm text-red-500">{form.formState.errors.contactRole.message}</p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
+                            {/* Phone and Role */}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor={`contact-phone-${index}`}>Phone</Label>
+                                <Input
+                                  id={`contact-phone-${index}`}
+                                  type="tel"
+                                  value={contact.phone}
+                                  onChange={(e) => updateContact(index, 'phone', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="+44 20 1234 5678"
+                                />
+                              </div>
 
-                <TabsContent value="secondary" className="space-y-4 mt-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="secondaryContactName">Name</Label>
-                      <Input
-                        id="secondaryContactName"
-                        {...form.register('secondaryContactName')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="Enter secondary contact name"
-                      />
-                      {form.formState.errors.secondaryContactName && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.secondaryContactName.message}
-                        </p>
-                      )}
-                    </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`contact-role-${index}`}>Role</Label>
+                                <Input
+                                  id={`contact-role-${index}`}
+                                  value={contact.role}
+                                  onChange={(e) => updateContact(index, 'role', e.target.value)}
+                                  disabled={isSubmitting || isLoading}
+                                  placeholder="e.g., HR Manager"
+                                />
+                              </div>
+                            </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="secondaryContactEmail">Email</Label>
-                      <Input
-                        id="secondaryContactEmail"
-                        type="email"
-                        {...form.register('secondaryContactEmail')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="secondary@company.com"
-                      />
-                      {form.formState.errors.secondaryContactEmail && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.secondaryContactEmail.message}
-                        </p>
-                      )}
-                    </div>
+                            {/* Contact Description */}
+                            <div className="space-y-2">
+                              <Label htmlFor={`contact-description-${index}`}>Contact Description</Label>
+                              <Input
+                                id={`contact-description-${index}`}
+                                value={contact.description}
+                                onChange={(e) => updateContact(index, 'description', e.target.value)}
+                                disabled={isSubmitting || isLoading}
+                                placeholder="Additional notes about this contact"
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ) : null
+                  )}
+                </Accordion>
+              )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="secondaryContactPhone">Phone</Label>
-                      <Input
-                        id="secondaryContactPhone"
-                        type="tel"
-                        {...form.register('secondaryContactPhone')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="+44 20 1234 5678"
-                      />
-                      {form.formState.errors.secondaryContactPhone && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.secondaryContactPhone.message}
-                        </p>
-                      )}
-                    </div>
+              {/* Unsaved Contact (Direct Form) */}
+              {contacts.find(c => !c.saved) && (
+                <div className="space-y-4">
+                  {contacts.filter(c => !c.saved).map((contact) => {
+                    const index = contacts.indexOf(contact);
+                    return (
+                      <div key={index} className="space-y-4 p-4 border border-primary/20 rounded-lg bg-primary/5">
+                        {/* Contact Type and Delete Button Row */}
+                        <div className="flex gap-2">
+                          <div className="space-y-2 flex-1">
+                            <Label htmlFor={`contact-type-${index}`}>
+                              Contact Type <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              value={contact.type}
+                              onValueChange={(value) => updateContact(index, 'type', value)}
+                              disabled={isSubmitting || isLoading}
+                            >
+                              <SelectTrigger id={`contact-type-${index}`}>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="SERVICE">Service Contact</SelectItem>
+                                <SelectItem value="INVOICE">Invoice Contact</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="secondaryContactRole">Role</Label>
-                      <Input
-                        id="secondaryContactRole"
-                        {...form.register('secondaryContactRole')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="e.g., Finance Director"
-                      />
-                      {form.formState.errors.secondaryContactRole && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.secondaryContactRole.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
+                          <div className="space-y-2">
+                            <Label className="invisible">Delete</Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeContact(index)}
+                              disabled={isSubmitting || isLoading}
+                              className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
 
-                <TabsContent value="invoice" className="space-y-4 mt-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="invoiceContactName">Name</Label>
-                      <Input
-                        id="invoiceContactName"
-                        {...form.register('invoiceContactName')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="Enter invoice contact name"
-                      />
-                      {form.formState.errors.invoiceContactName && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.invoiceContactName.message}
-                        </p>
-                      )}
-                    </div>
+                        {/* Name and Email */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`contact-name-${index}`}>
+                              Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`contact-name-${index}`}
+                              value={contact.name}
+                              onChange={(e) => updateContact(index, 'name', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="Enter contact name"
+                            />
+                          </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="invoiceContactEmail">Email</Label>
-                      <Input
-                        id="invoiceContactEmail"
-                        type="email"
-                        {...form.register('invoiceContactEmail')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="invoices@company.com"
-                      />
-                      {form.formState.errors.invoiceContactEmail && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.invoiceContactEmail.message}
-                        </p>
-                      )}
-                    </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`contact-email-${index}`}>
+                              Email <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`contact-email-${index}`}
+                              type="email"
+                              value={contact.email}
+                              onChange={(e) => updateContact(index, 'email', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="contact@company.com"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="invoiceContactPhone">Phone</Label>
-                      <Input
-                        id="invoiceContactPhone"
-                        type="tel"
-                        {...form.register('invoiceContactPhone')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="+44 20 1234 5678"
-                      />
-                      {form.formState.errors.invoiceContactPhone && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.invoiceContactPhone.message}
-                        </p>
-                      )}
-                    </div>
+                        {/* Phone and Role */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`contact-phone-${index}`}>Phone</Label>
+                            <Input
+                              id={`contact-phone-${index}`}
+                              type="tel"
+                              value={contact.phone}
+                              onChange={(e) => updateContact(index, 'phone', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="+44 20 1234 5678"
+                            />
+                          </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="invoiceContactRole">Role</Label>
-                      <Input
-                        id="invoiceContactRole"
-                        {...form.register('invoiceContactRole')}
-                        disabled={isSubmitting || isLoading}
-                        placeholder="e.g., Accounts Payable"
-                      />
-                      {form.formState.errors.invoiceContactRole && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.invoiceContactRole.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                          <div className="space-y-2">
+                            <Label htmlFor={`contact-role-${index}`}>Role</Label>
+                            <Input
+                              id={`contact-role-${index}`}
+                              value={contact.role}
+                              onChange={(e) => updateContact(index, 'role', e.target.value)}
+                              disabled={isSubmitting || isLoading}
+                              placeholder="e.g., HR Manager"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Contact Description */}
+                        <div className="space-y-2">
+                          <Label htmlFor={`contact-description-${index}`}>Contact Description</Label>
+                          <Input
+                            id={`contact-description-${index}`}
+                            value={contact.description}
+                            onChange={(e) => updateContact(index, 'description', e.target.value)}
+                            disabled={isSubmitting || isLoading}
+                            placeholder="Additional notes about this contact"
+                          />
+                        </div>
+
+                        {/* Save Contact Button */}
+                        <div className="flex justify-end pt-4 border-t border-primary/20">
+                          <Button
+                            type="button"
+                            onClick={() => saveContact(index)}
+                            disabled={isSubmitting || isLoading}
+                            className="min-w-[150px]"
+                          >
+                            Save Contact
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Create New Contact Button */}
+              <button
+                type="button"
+                onClick={addContact}
+                disabled={isSubmitting || isLoading || contacts.some(c => !c.saved)}
+                className={`
+                  w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed
+                  transition-all duration-200
+                  ${
+                    isSubmitting || isLoading || contacts.some(c => !c.saved)
+                      ? 'border-muted-foreground/30 text-muted-foreground cursor-not-allowed opacity-50'
+                      : 'border-primary/50 text-primary hover:border-primary hover:bg-primary/5 cursor-pointer'
+                  }
+                `}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="font-medium">Create New Contact</span>
+              </button>
             </CardContent>
           </Card>
         )}
@@ -1671,6 +1755,37 @@ export function ClientForm({
               }}
             >
               Yes, Create as Inactive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* No Contacts Warning Dialog */}
+      <AlertDialog open={showNoContactsWarning} onOpenChange={setShowNoContactsWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>No Contacts Added</AlertDialogTitle>
+            <AlertDialogDescription>
+              You haven&apos;t added any contacts for this client. While this is allowed, it&apos;s recommended to have at least one contact person for communication purposes.
+              <br /><br />
+              Would you like to go back and add a contact, or continue without any contacts?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back and Add Contact</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowNoContactsWarning(false);
+                const data = form.getValues();
+                // Check status next
+                if (data.status === 'INACTIVE') {
+                  setShowInactiveConfirm(true);
+                } else {
+                  handleSubmitInternal(data);
+                }
+              }}
+            >
+              Continue Without Contacts
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

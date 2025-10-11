@@ -21,15 +21,15 @@ import { toast } from 'sonner';
 
 import { deleteAudit, updateAudit } from '@/lib/actions/audit.actions';
 import { updateClient } from '@/lib/actions/client.actions';
-import { updateContact } from '@/lib/actions/contact.actions';
+import { updateContact, deleteContact } from '@/lib/actions/contact.actions';
 import { updateContract } from '@/lib/actions/contract.actions';
 import {
   AVAILABLE_SERVICES_IN_SCOPE,
   AVAILABLE_SERVICES_OUT_OF_SCOPE,
 } from '@/lib/constants/contract';
 
-import { ContactTabButtons, ContactDisplay } from '@/components/clients/contact-tabs';
-import { ContactTabsProvider } from '@/components/clients/contact-tabs-provider';
+import { ContactDisplay } from '@/components/clients/contact-tabs';
+import { SectorSelect } from '@/components/forms/sector-select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -294,6 +294,27 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
     );
   };
 
+
+  // Handler for contact deletion
+  const handleContactDelete = async (contactId: number) => {
+    if (!confirm('Are you sure you want to delete this contact?')) {
+      return;
+    }
+
+    try {
+      const result = await deleteContact(contactId);
+      
+      if (result.success) {
+        setContacts((prevContacts) => prevContacts.filter((contact) => contact.id !== contactId));
+        toast.success('Contact deleted successfully');
+      } else {
+        toast.error(result.error || 'Failed to delete contact');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+      console.error(error);
+    }
+  };
   // Handler for audit field changes
   const handleAuditChange = (auditId: number, field: string, value: string) => {
     setAudits((prevAudits) =>
@@ -585,11 +606,10 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                   Sector
                 </Label>
                 {editMode ? (
-                  <Input
-                    id="sector"
+                  <SectorSelect
                     value={sector}
-                    onChange={(e) => setSector(e.target.value)}
-                    className="w-full"
+                    onChange={setSector}
+                    disabled={isSaving}
                   />
                 ) : (
                   <p className="text-base">{client.sector || '-'}</p>
@@ -728,16 +748,17 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
             )}
           </CardHeader>
           <CardContent>
-            <ContactTabsProvider>
-              <div className="space-y-4">
-                <ContactTabButtons contacts={contacts} />
-                <ContactDisplay
-                  contacts={contacts}
-                  editMode={editMode}
-                  onContactChange={handleContactChange}
-                />
-              </div>
-            </ContactTabsProvider>
+            <ContactDisplay
+              contacts={contacts}
+              editMode={editMode}
+              onContactChange={handleContactChange}
+              onContactDelete={handleContactDelete}
+              clientId={client.id}
+              onContactAdded={(newContact) => {
+                setContacts([...contacts, newContact]);
+                router.refresh();
+              }}
+            />
           </CardContent>
         </Card>
       </TabsContent>

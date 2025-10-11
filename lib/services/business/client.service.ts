@@ -51,6 +51,106 @@ export class ClientService {
   }
 
   /**
+   * Update sector name across all clients
+   * @param oldName - Current sector name
+   * @param newName - New sector name
+   * @returns Number of clients updated
+   */
+  async updateSector(oldName: string, newName: string): Promise<number> {
+    // Validation
+    if (!oldName || !oldName.trim()) {
+      throw new ValidationError('Old sector name is required');
+    }
+    if (!newName || !newName.trim()) {
+      throw new ValidationError('New sector name is required');
+    }
+    if (newName.length > 100) {
+      throw new ValidationError('Sector name must be less than 100 characters');
+    }
+
+    const trimmedOld = oldName.trim();
+    const trimmedNew = newName.trim();
+
+    // Check if trying to rename to the same name
+    if (trimmedOld.toLowerCase() === trimmedNew.toLowerCase()) {
+      throw new ValidationError('New sector name must be different from the old name');
+    }
+
+    // Check if the new sector name already exists
+    const existingSector = await this.db.client.findFirst({
+      where: {
+        sector: {
+          equals: trimmedNew,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (existingSector) {
+      throw new ValidationError(`Sector "${trimmedNew}" already exists`);
+    }
+
+    // Update all clients with this sector
+    const result = await this.db.client.updateMany({
+      where: {
+        sector: {
+          equals: trimmedOld,
+          mode: 'insensitive',
+        },
+      },
+      data: {
+        sector: trimmedNew,
+      },
+    });
+
+    return result.count;
+  }
+
+  /**
+   * Delete sector (set to null for all clients using it)
+   * @param name - Sector name to delete
+   * @returns Object with count of clients affected and whether deletion was successful
+   */
+  async deleteSector(name: string): Promise<{ count: number; deleted: boolean }> {
+    // Validation
+    if (!name || !name.trim()) {
+      throw new ValidationError('Sector name is required');
+    }
+
+    const trimmedName = name.trim();
+
+    // Count how many clients use this sector
+    const clientCount = await this.db.client.count({
+      where: {
+        sector: {
+          equals: trimmedName,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (clientCount === 0) {
+      // No clients use this sector, nothing to delete
+      return { count: 0, deleted: false };
+    }
+
+    // Set sector to null for all clients using it
+    const result = await this.db.client.updateMany({
+      where: {
+        sector: {
+          equals: trimmedName,
+          mode: 'insensitive',
+        },
+      },
+      data: {
+        sector: null,
+      },
+    });
+
+    return { count: result.count, deleted: true };
+  }
+
+  /**
    * Get clients with search and pagination
    */
   async getClients(params: GetClientsParams): Promise<ClientResponse> {
@@ -179,7 +279,7 @@ export class ClientService {
   }
 
   /**
-   * Create a new client
+   * Create a new client with new contact system
    */
   async createClient(data: CreateClientDto): Promise<Client> {
     // Validate required fields
@@ -187,24 +287,34 @@ export class ClientService {
     if (!data.companyName) {
       errors.push({ field: 'companyName', message: 'Company name is required' });
     }
-    if (!data.contactName) {
-      errors.push({ field: 'contactName', message: 'Contact name is required' });
-    }
-    if (!data.contactEmail) {
-      errors.push({ field: 'contactEmail', message: 'Contact email is required' });
-    } else if (!this.isValidEmail(data.contactEmail)) {
-      errors.push({ field: 'contactEmail', message: 'Invalid email format' });
-    }
     if (!data.serviceTier) {
       errors.push({ field: 'serviceTier', message: 'Service tier is required' });
+    }
+
+    // Validate contacts if provided
+    if (data.contacts) {
+      data.contacts.forEach((contact, index) => {
+        if (!contact.name) {
+          errors.push({ field: `contacts[${index}].name`, message: 'Contact name is required' });
+        }
+        if (!contact.email) {
+          errors.push({ field: `contacts[${index}].email`, message: 'Contact email is required' });
+        } else if (!this.isValidEmail(contact.email)) {
+          errors.push({ field: `contacts[${index}].email`, message: 'Invalid email format' });
+        }
+      });
     }
 
     if (errors.length > 0) {
       throw new FieldValidationError(errors);
     }
 
-    // Check for duplicate email
-    await this.checkDuplicateEmail(data.contactEmail);
+    // Check for duplicate emails in contacts (if any provided)
+    if (data.contacts && data.contacts.length > 0) {
+      for (const contact of data.contacts) {
+        await this.checkDuplicateEmail(contact.email);
+      }
+    }
 
     // Create client and contacts in a transaction
     const client = await this.db.$transaction(async (tx) => {
@@ -228,6 +338,10 @@ export class ClientService {
       // If paymentMethod is null/undefined, all remain null (N/A)
 
       // Create the client
+      // Note: contactName/contactEmail/contactPhone are legacy fields kept for backward compatibility
+      // We populate them with first contact data if available, otherwise use placeholder
+      const firstContact = data.contacts && data.contacts.length > 0 ? data.contacts[0] : null;
+
       const newClient = await tx.client.create({
         data: {
           clientType: data.clientType || 'COMPANY',
@@ -236,9 +350,9 @@ export class ClientService {
           sector: data.sector || null,
           serviceTier: data.serviceTier,
           monthlyRetainer: data.monthlyRetainer || null,
-          contactName: data.contactName,
-          contactEmail: data.contactEmail,
-          contactPhone: data.contactPhone || null,
+          contactName: firstContact?.name || 'No Contact',
+          contactEmail: firstContact?.email || 'noreply@placeholder.com',
+          contactPhone: firstContact?.phone || null,
           addressLine1: data.addressLine1 || null,
           addressLine2: data.addressLine2 || null,
           city: data.city || null,
@@ -257,44 +371,21 @@ export class ClientService {
         },
       });
 
-      // Create primary contact
-      await tx.clientContact.create({
-        data: {
-          clientId: newClient.id,
-          name: data.contactName,
-          email: data.contactEmail,
-          phone: data.contactPhone || null,
-          role: data.contactRole || null,
-          type: 'PRIMARY',
-        },
-      });
-
-      // Create secondary contact if provided
-      if (data.secondaryContactName && data.secondaryContactEmail) {
-        await tx.clientContact.create({
-          data: {
-            clientId: newClient.id,
-            name: data.secondaryContactName,
-            email: data.secondaryContactEmail,
-            phone: data.secondaryContactPhone || null,
-            role: data.secondaryContactRole || null,
-            type: 'SECONDARY',
-          },
-        });
-      }
-
-      // Create invoice contact if provided
-      if (data.invoiceContactName && data.invoiceContactEmail) {
-        await tx.clientContact.create({
-          data: {
-            clientId: newClient.id,
-            name: data.invoiceContactName,
-            email: data.invoiceContactEmail,
-            phone: data.invoiceContactPhone || null,
-            role: data.invoiceContactRole || null,
-            type: 'INVOICE',
-          },
-        });
+      // Create contacts from array (new system: SERVICE or INVOICE types)
+      if (data.contacts && data.contacts.length > 0) {
+        for (const contact of data.contacts) {
+          await tx.clientContact.create({
+            data: {
+              clientId: newClient.id,
+              type: contact.type,
+              name: contact.name,
+              email: contact.email,
+              phone: contact.phone || null,
+              role: contact.role || null,
+              description: contact.description || null,
+            },
+          });
+        }
       }
 
       // Create client audit records if external audit is enabled
@@ -325,9 +416,13 @@ export class ClientService {
       }
 
       // Create contract record with service agreement details
-      // Generate contract number and version (this is the first contract, so version = 1)
-      const year = new Date().getFullYear();
-      const contractNumber = `CON-${newClient.id}-${year}-001`;
+      // Generate contract number: CON-{batch}-{record}
+      // Batch 001 can hold 999 contracts (CON-001-001 to CON-001-999)
+      // Then batch 002 starts (CON-002-001 to CON-002-999), etc.
+      const contractCount = await tx.contract.count();
+      const batch = Math.floor(contractCount / 999) + 1; // Start at batch 001
+      const record = (contractCount % 999) + 1; // Record within batch (1-999)
+      const contractNumber = `CON-${String(batch).padStart(3, '0')}-${String(record).padStart(3, '0')}`;
       const version = 1; // First contract is always version 1
 
       await tx.contract.create({
