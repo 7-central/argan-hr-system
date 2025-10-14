@@ -336,20 +336,25 @@ model CaseInteraction {
 
 // Case files - file attachments for cases and interactions
 model CaseFile {
-  id             Int              @id @default(autoincrement())
-  caseId         Int              @map("case_id")
-  interactionId  Int?             @map("interaction_id") // NULL = case-level, value = interaction-level
-  fileName       String           @map("file_name")
-  fileUrl        String           @map("file_url")
-  fileSize       Int              @map("file_size") // Size in bytes
-  uploadedBy     String           @map("uploaded_by")
+  id              Int              @id @default(autoincrement())
+  caseId          Int              @map("case_id")
+  interactionId   Int?             @map("interaction_id") // NULL = case-level, value = interaction-level
+  fileName        String           @map("file_name")
+  fileUrl         String           @map("file_url")
+  fileSize        Int              @map("file_size") // Size in bytes
+  uploadedBy      String           @map("uploaded_by")
+
+  // Document metadata (optional)
+  fileTitle       String?          @map("file_title")
+  fileDescription String?          @db.Text @map("file_description")
+  fileTags        String[]         @default([]) @map("file_tags")
 
   // Metadata
-  uploadedAt     DateTime         @default(now()) @map("uploaded_at")
+  uploadedAt      DateTime         @default(now()) @map("uploaded_at")
 
   // Relations
-  case           Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  interaction    CaseInteraction? @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+  case            Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  interaction     CaseInteraction? @relation(fields: [interactionId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
   @@index([interactionId])

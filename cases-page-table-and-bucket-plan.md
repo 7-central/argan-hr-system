@@ -37,56 +37,101 @@ You'll need:
    - file_size
    - uploaded_at
    - uploaded_by
+   - **file_title** (optional) - "Written Warning - John Smith"
+   - **file_description** (optional) - "Final written warning for repeated lateness..."
+   - **file_tags** (array, optional) - ["Warning", "Disciplinary", "Final"]
 
 The key here is **interaction_id is nullable**:
 - If `interaction_id` is NULL → it's a **case-level file**
 - If `interaction_id` has a value → it's an **interaction-level file**
 
+**Document metadata** enables:
+- Searchable documents by title/tags
+- AI summarization without downloading files
+- Better organization and filtering
+
 ## File Storage Structure
 
-Your bucket architecture is spot-on:
+**Nested Directory Structure** for clear organization:
 
 ```
-admin-bucket/                          ← Internal Argan documents
+argan-admin-bucket/                    ← Internal Argan documents
 ├── {client-id}/
-│   ├── cases/
-│   │   └── {case-id}/
-│   │       ├── case-document-1.pdf        ← Case-level (no interaction ID)
-│   │       ├── case-document-2.pdf
-│   │       ├── interaction-{id}-doc.pdf   ← Interaction-level
-│   │       └── interaction-{id}-evidence.pdf
+│   └── cases/
+│       └── {case-id}/
+│           ├── case-level/            ← Case-level files
+│           │   ├── settlement-agreement.pdf
+│           │   └── contract.pdf
+│           └── interactions/          ← Interaction-level files
+│               ├── interaction-5/
+│               │   ├── evidence.pdf
+│               │   └── email.pdf
+│               └── interaction-7/
+│                   └── witness-statement.pdf
 
-client-bucket/                         ← Client-facing documents
+argan-client-bucket/                   ← Client-facing documents
 ├── {client-id}/
 │   ├── policies/
 │   ├── handbooks/
 │   └── ...
 ```
 
+**Benefits of nested structure:**
+- Clear separation between case-level and interaction-level
+- Easy to find all files for a specific interaction
+- Natural hierarchy matching data model
+- Better for UI grouping and display
+
 ## File Naming Convention
+
+With nested directories, filenames can be simpler:
 
 **Case-level files:**
 ```
-{case-id}-{timestamp}-{original-filename}.pdf
-Example: CASE-0001-1634567890-settlement-agreement.pdf
+Path: {client-id}/cases/{case-id}/case-level/{timestamp}-{original-filename}.pdf
+Example: 123/cases/CASE-0001/case-level/1634567890-settlement-agreement.pdf
 ```
 
 **Interaction-level files:**
 ```
-{case-id}-interaction-{interaction-id}-{timestamp}-{original-filename}.pdf
-Example: CASE-0001-interaction-5-1634567890-evidence.pdf
+Path: {client-id}/cases/{case-id}/interactions/interaction-{id}/{timestamp}-{original-filename}.pdf
+Example: 123/cases/CASE-0001/interactions/interaction-5/1634567890-evidence.pdf
 ```
 
-This way:
-- You can easily see which case a file belongs to
-- You can distinguish case vs interaction files by the presence of "interaction-{id}"
+**Benefits:**
+- Directory structure provides context (no need for complex filenames)
 - Timestamp prevents naming collisions
-- Original filename is preserved for user clarity
+- Original filename preserved for clarity
+- Easy to find all files for a specific interaction
 
 ## Implementation Approach
 
-When the file upload icon is clicked:
-1. **In Case Details Widget** → `interaction_id = null` in database
-2. **In Interactions Widget** → `interaction_id = {specific_interaction_id}` in database
+### File Upload Modal Workflow:
 
-The upload handler knows which level based on context. Does this structure work for what you're envisioning?
+**1. User clicks paperclip icon** (Case Details Widget OR Interaction card)
+
+**2. Modal opens with:**
+- File selector
+- **File Title** (optional text input) - "Written Warning - John Smith"
+- **File Description** (optional textarea) - "Final written warning for..."
+- **Tags** (optional multi-select) - Warning, Disciplinary, Evidence, etc.
+- Upload button
+
+**3. Upload logic determines path:**
+
+**Case Details Widget (case-level):**
+```
+Path: {client-id}/cases/{case-id}/case-level/{timestamp}-{filename}
+Database: interaction_id = NULL
+```
+
+**Interaction Widget (interaction-level):**
+```
+Path: {client-id}/cases/{case-id}/interactions/interaction-{id}/{timestamp}-{filename}
+Database: interaction_id = {specific_interaction_id}
+```
+
+**4. Database record created in `case_files` table with:**
+- file_url (S3 URL)
+- file_title, file_description, file_tags (if provided)
+- Linked to case (and interaction if applicable)
