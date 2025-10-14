@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Save, Check, Trash2, Paperclip } from 'lucide-react';
 
+import { FileUploadModal } from '@/components/cases/file-upload-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,18 +21,20 @@ interface CaseDetailsWidgetProps {
     escalatedBy: string;
     assignedTo: string | null;
   };
+  clientId: number;
 }
 
 /**
  * Case Details Widget
  * Shows detailed information about a selected case
  */
-export function CaseDetailsWidget({ caseData }: CaseDetailsWidgetProps) {
+export function CaseDetailsWidget({ caseData, clientId }: CaseDetailsWidgetProps) {
   const [title, setTitle] = useState(caseData.title);
   const [escalatedBy, setEscalatedBy] = useState(caseData.escalatedBy);
   const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   /**
    * Get status dot color
@@ -105,7 +108,7 @@ export function CaseDetailsWidget({ caseData }: CaseDetailsWidgetProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => console.log('Attach file to case')}
+            onClick={() => setIsUploadModalOpen(true)}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
           >
             <Paperclip className="h-4 w-4" />
@@ -211,6 +214,19 @@ export function CaseDetailsWidget({ caseData }: CaseDetailsWidgetProps) {
           />
         </div>
       </CardContent>
+
+      {/* File Upload Modal */}
+      <FileUploadModal
+        open={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+        caseId={caseData.caseId}
+        clientId={clientId}
+        interactionId={null}
+        onUploadSuccess={() => {
+          console.log('File uploaded successfully');
+          // TODO: Refresh file list
+        }}
+      />
     </Card>
   );
 }

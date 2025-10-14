@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Plus, User, Calendar, Trash2, Paperclip } from 'lucide-react';
 
+import { FileUploadModal } from '@/components/cases/file-upload-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -36,6 +37,7 @@ interface Interaction {
 
 interface CaseInteractionsWidgetProps {
   caseId: string;
+  clientId: number;
 }
 
 // Mock admin users (TODO: Replace with real data from API)
@@ -56,11 +58,13 @@ const MOCK_CONTRACTORS = [
  * Case Interactions Widget
  * Shows interaction log for a case and allows adding new interactions
  */
-export function CaseInteractionsWidget({ caseId }: CaseInteractionsWidgetProps) {
+export function CaseInteractionsWidget({ caseId, clientId }: CaseInteractionsWidgetProps) {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newInteractionText, setNewInteractionText] = useState('');
   const [viewingInteraction, setViewingInteraction] = useState<Interaction | null>(null);
+  const [uploadInteractionId, setUploadInteractionId] = useState<number | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // First party state
   const [party1Type, setParty1Type] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'>('ARGAN');
@@ -215,8 +219,8 @@ export function CaseInteractionsWidget({ caseId }: CaseInteractionsWidgetProps) 
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // TODO: Handle file attachment
-                          console.log('Attach file to interaction:', interaction.id);
+                          setUploadInteractionId(interaction.id);
+                          setIsUploadModalOpen(true);
                         }}
                         className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                       >
@@ -519,6 +523,22 @@ export function CaseInteractionsWidget({ caseId }: CaseInteractionsWidgetProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* File Upload Modal */}
+      <FileUploadModal
+        open={isUploadModalOpen}
+        onOpenChange={(open) => {
+          setIsUploadModalOpen(open);
+          if (!open) setUploadInteractionId(null);
+        }}
+        caseId={caseId}
+        clientId={clientId}
+        interactionId={uploadInteractionId}
+        onUploadSuccess={() => {
+          console.log('File uploaded successfully to interaction:', uploadInteractionId);
+          // TODO: Refresh file list
+        }}
+      />
     </>
   );
 }

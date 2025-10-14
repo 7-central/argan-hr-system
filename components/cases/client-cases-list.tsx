@@ -729,10 +729,11 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
               escalatedBy: selectedCase.escalatedBy,
               assignedTo: selectedCase.assignedTo,
             }}
+            clientId={clientId}
           />
 
           {/* Right: Case Interactions Widget */}
-          <CaseInteractionsWidget caseId={selectedCase.caseId} />
+          <CaseInteractionsWidget caseId={selectedCase.caseId} clientId={clientId} />
         </div>
       )}
 
