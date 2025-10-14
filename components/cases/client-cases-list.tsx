@@ -2,11 +2,13 @@
 
 import { useState, useMemo } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { ArrowUpDown, ArrowUp, ArrowDown, Filter, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { CaseDetailsWidget } from '@/components/cases/case-details-widget';
 import { CaseInteractionsWidget } from '@/components/cases/case-interactions-widget';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,68 +42,23 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
+import type { CaseData } from '@/components/cases/cases-page-content';
+
+
 interface ClientCasesListProps {
   clientId: number;
   clientName: string;
-  cases: never[]; // TODO: Replace with proper Case type
+  cases: CaseData[];
   searchTerm?: string;
 }
-
-// Placeholder data - 20 cases
-const PLACEHOLDER_CASES = Array.from({ length: 20 }, (_, i) => {
-  const status = ['OPEN', 'CLOSED', 'AWAITING'][i % 3] as 'OPEN' | 'CLOSED' | 'AWAITING';
-
-  return {
-    id: i + 1,
-    caseId: `CASE-${String(i + 1).padStart(4, '0')}`,
-    title: [
-      'Disciplinary Action Review',
-      'Contract Termination Query',
-      'Sick Leave Extension Request',
-      'Performance Improvement Plan',
-      'Holiday Entitlement Dispute',
-      'Workplace Grievance Investigation',
-      'Redundancy Consultation',
-      'Maternity Leave Planning',
-      'Flexible Working Request',
-      'Salary Review Discussion',
-      'Training Budget Approval',
-      'Remote Work Policy Query',
-      'Staff Wellbeing Initiative',
-      'Overtime Payment Issue',
-      'Promotion Eligibility Review',
-      'Exit Interview Follow-up',
-      'Probation Period Extension',
-      'Employee Relations Matter',
-      'Health & Safety Concern',
-      'Data Protection Compliance',
-    ][i % 20],
-    creationDate: new Date(2024, 0, 1 + i * 3).toLocaleDateString('en-GB'),
-    status,
-    // Set action required to null if case is closed
-    actionRequired: status === 'CLOSED' ? null : (['ARGAN', 'CLIENT', 'CONTRACTOR', 'EMPLOYEE'][i % 4] as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'),
-    escalatedBy: [
-      'Sarah Johnson',
-      'Michael Chen',
-      'Emma Williams',
-      'David Smith',
-      'Lisa Anderson',
-    ][i % 5],
-    // Some cases might not be assigned yet
-    assignedTo: i % 7 === 0 ? null : [
-      'Kim Fletcher',
-      'Ric Thompson',
-      'Sue Davies',
-    ][i % 3],
-  };
-});
 
 /**
  * Client Cases List Component
  * Displays list of cases with action buttons
  */
 export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }: ClientCasesListProps) {
-  const [selectedCase, setSelectedCase] = useState<typeof PLACEHOLDER_CASES[0] | null>(null);
+  const router = useRouter();
+  const [selectedCase, setSelectedCase] = useState<CaseData | null>(null);
   const [sortColumn, setSortColumn] = useState<'caseId' | 'title' | 'escalatedBy' | 'assignedTo' | 'creationDate' | 'status' | 'actionRequired'>('creationDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -125,10 +82,8 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
   /**
    * Handle case click
    */
-  const handleCaseClick = (caseItem: typeof PLACEHOLDER_CASES[0]) => {
-    console.log('Case clicked:', caseItem.caseId);
+  const handleCaseClick = (caseItem: CaseData) => {
     setSelectedCase(caseItem);
-    // TODO: Show case details below or in expanded section
   };
 
   /**
@@ -146,9 +101,22 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
   /**
    * Handle action required change
    */
-  const handleActionRequiredChange = (caseId: string, newValue: string | null) => {
-    console.log(`Changing action required for ${caseId} to ${newValue || '-'}`);
-    // TODO: Update via API
+  const handleActionRequiredChange = async (id: number, caseId: string, newValue: string | null) => {
+    try {
+      const response = await fetch(`/api/cases/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionRequiredBy: newValue }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update case');
+
+      toast.success(`Action required changed to ${newValue || '-'}`);
+
+      router.refresh();
+    } catch {
+      toast.error('Failed to update case');
+    }
   };
 
   /**
@@ -181,8 +149,8 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
   /**
    * Get unique values for a column
    */
-  const getUniqueValues = (column: keyof typeof PLACEHOLDER_CASES[0]) => {
-    return [...new Set(PLACEHOLDER_CASES.map(c => c[column]))].sort();
+  const getUniqueValues = (column: keyof CaseData) => {
+    return [...new Set(cases.map(c => c[column]))].filter(Boolean).sort();
   };
 
   /**
@@ -190,7 +158,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
    */
   const filteredAndSortedCases = useMemo(() => {
     // First filter
-    let filtered = PLACEHOLDER_CASES.filter(caseItem => {
+    const filtered = cases.filter(caseItem => {
       // Apply search term filter
       if (searchTerm.trim()) {
         const search = searchTerm.toLowerCase();
@@ -260,7 +228,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [searchTerm, filters, sortColumn, sortDirection]);
+  }, [cases, searchTerm, filters, sortColumn, sortDirection]);
 
   /**
    * Render sort icon based on current sort state
@@ -316,46 +284,85 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
   /**
    * Handle assigned to change
    */
-  const handleAssignedToChange = (caseId: string, newValue: string | null) => {
-    console.log(`Changing assigned to for ${caseId} to ${newValue || '-'}`);
-    // TODO: Update via API
+  const handleAssignedToChange = async (id: number, caseId: string, newValue: string | null) => {
+    try {
+      const response = await fetch(`/api/cases/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo: newValue }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update case');
+
+      toast.success(`Assigned to ${newValue || '-'}`);
+
+      router.refresh();
+    } catch {
+      toast.error('Failed to update case');
+    }
   };
 
   /**
    * Handle case status change
    */
-  const handleCaseStatusChange = (caseId: string, newValue: string) => {
-    console.log(`Changing case status for ${caseId} to ${newValue}`);
-    // TODO: Update via API
+  const handleCaseStatusChange = async (id: number, caseId: string, newValue: string) => {
+    try {
+      const response = await fetch(`/api/cases/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newValue }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update case');
+
+      toast.success(`Status changed to ${newValue}`);
+
+      router.refresh();
+    } catch {
+      toast.error('Failed to update case');
+    }
   };
 
   /**
    * Handle create new case
    */
-  const handleCreateNewCase = () => {
+  const handleCreateNewCase = async () => {
     if (!newCaseTitle.trim() || !newCaseEscalatedBy.trim()) {
       return;
     }
 
-    console.log('Creating new case:', {
-      title: newCaseTitle,
-      escalatedBy: newCaseEscalatedBy,
-      assignedTo: newCaseAssignedTo,
-      status: newCaseStatus,
-      actionRequired: newCaseActionRequired,
-      description: newCaseDescription,
-    });
+    try {
+      const response = await fetch('/api/cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          title: newCaseTitle,
+          escalatedBy: newCaseEscalatedBy,
+          assignedTo: newCaseAssignedTo,
+          status: newCaseStatus,
+          actionRequiredBy: newCaseActionRequired,
+          description: newCaseDescription,
+        }),
+      });
 
-    // TODO: Call API to create case
+      if (!response.ok) throw new Error('Failed to create case');
 
-    // Reset form
-    setNewCaseTitle('');
-    setNewCaseEscalatedBy('');
-    setNewCaseAssignedTo(null);
-    setNewCaseStatus('OPEN');
-    setNewCaseActionRequired('ARGAN');
-    setNewCaseDescription('');
-    setIsNewCaseDialogOpen(false);
+      toast.success('New case has been created successfully');
+
+      // Reset form
+      setNewCaseTitle('');
+      setNewCaseEscalatedBy('');
+      setNewCaseAssignedTo(null);
+      setNewCaseStatus('OPEN');
+      setNewCaseActionRequired('ARGAN');
+      setNewCaseDescription('');
+      setIsNewCaseDialogOpen(false);
+
+      router.refresh();
+    } catch {
+      toast.error('Failed to create case');
+    }
   };
 
   return (
@@ -632,16 +639,16 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="center">
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.caseId, null)} className="justify-center">
+                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, null)} className="justify-center">
                             <span className="text-sm text-muted-foreground">-</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.caseId, 'Kim Fletcher')}>
+                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, 'Kim Fletcher')}>
                             <span className="text-sm">Kim Fletcher</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.caseId, 'Ric Thompson')}>
+                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, 'Ric Thompson')}>
                             <span className="text-sm">Ric Thompson</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.caseId, 'Sue Davies')}>
+                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, 'Sue Davies')}>
                             <span className="text-sm">Sue Davies</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -664,13 +671,13 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="center">
-                            <DropdownMenuItem onClick={() => handleCaseStatusChange(caseItem.caseId, 'OPEN')}>
+                            <DropdownMenuItem onClick={() => handleCaseStatusChange(caseItem.id, caseItem.caseId, 'OPEN')}>
                               <span className="text-sm">OPEN</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCaseStatusChange(caseItem.caseId, 'AWAITING')}>
+                            <DropdownMenuItem onClick={() => handleCaseStatusChange(caseItem.id, caseItem.caseId, 'AWAITING')}>
                               <span className="text-sm">AWAITING</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCaseStatusChange(caseItem.caseId, 'CLOSED')}>
+                            <DropdownMenuItem onClick={() => handleCaseStatusChange(caseItem.id, caseItem.caseId, 'CLOSED')}>
                               <span className="text-sm">CLOSED</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -688,19 +695,19 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="center">
-                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.caseId, null)} className="justify-center">
+                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.id, caseItem.caseId, null)} className="justify-center">
                               <span className="text-sm text-muted-foreground">-</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.caseId, 'ARGAN')}>
+                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.id, caseItem.caseId, 'ARGAN')}>
                               <span className="text-sm">ARGAN</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.caseId, 'CLIENT')}>
+                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.id, caseItem.caseId, 'CLIENT')}>
                               <span className="text-sm">CLIENT</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.caseId, 'CONTRACTOR')}>
+                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.id, caseItem.caseId, 'CONTRACTOR')}>
                               <span className="text-sm">CONTRACTOR</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.caseId, 'EMPLOYEE')}>
+                            <DropdownMenuItem onClick={() => handleActionRequiredChange(caseItem.id, caseItem.caseId, 'EMPLOYEE')}>
                               <span className="text-sm">EMPLOYEE</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -788,7 +795,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
 
               <div className="space-y-2">
                 <Label htmlFor="action-required">Action Required By</Label>
-                <Select value={newCaseActionRequired} onValueChange={(value: any) => setNewCaseActionRequired(value)}>
+                <Select value={newCaseActionRequired} onValueChange={(value) => setNewCaseActionRequired(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE')}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select who needs to act" />
                   </SelectTrigger>
@@ -805,7 +812,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
             {/* Case Status */}
             <div className="space-y-2">
               <Label htmlFor="case-status">Case Status</Label>
-              <Select value={newCaseStatus} onValueChange={(value: any) => setNewCaseStatus(value)}>
+              <Select value={newCaseStatus} onValueChange={(value) => setNewCaseStatus(value as 'OPEN' | 'AWAITING' | 'CLOSED')}>
                 <SelectTrigger className="w-[calc(50%-0.5rem)]">
                   <SelectValue placeholder="Select case status" />
                 </SelectTrigger>

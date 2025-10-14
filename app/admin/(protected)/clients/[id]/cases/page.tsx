@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { ArrowLeft } from 'lucide-react';
 
+import { caseService } from '@/lib/services/business/case.service';
 import { clientService } from '@/lib/services/business/client.service';
 
 import { CasesPageContent } from '@/components/cases/cases-page-content';
@@ -46,8 +47,23 @@ export default async function ClientCasesPage({ params }: ClientCasesPageProps) 
     notFound();
   }
 
-  // TODO: Fetch cases for this client
-  const cases: never[] = [];
+  // Fetch cases for this client
+  const casesData = await caseService.getCasesByClientId(id);
+
+  // Transform to match frontend format
+  const cases = casesData.map(c => ({
+    id: c.id,
+    caseId: c.caseId,
+    title: c.title,
+    creationDate: c.createdAt.toLocaleDateString('en-GB'),
+    status: c.status,
+    actionRequired: c.actionRequiredBy,
+    escalatedBy: c.escalatedBy,
+    assignedTo: c.assignedTo,
+    description: c.description,
+    interactionCount: c._count.interactions,
+    fileCount: c._count.files,
+  }));
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">

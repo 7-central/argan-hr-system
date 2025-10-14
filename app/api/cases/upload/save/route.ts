@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { prisma } from '@/lib/db/prisma';
+import { caseService } from '@/lib/services/business/case.service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,18 +32,16 @@ export async function POST(request: NextRequest) {
     const uploadedBy = 'admin-user';
 
     // Create file record
-    const fileRecord = await prisma.caseFile.create({
-      data: {
-        caseId: parseInt(caseId),
-        interactionId: interactionId ? parseInt(interactionId) : null,
-        fileName,
-        fileUrl,
-        fileSize: parseInt(fileSize),
-        uploadedBy,
-        fileTitle: fileTitle || null,
-        fileDescription: fileDescription || null,
-        fileTags: fileTags || [],
-      },
+    const fileRecord = await caseService.createFile({
+      caseId: parseInt(caseId),
+      interactionId: interactionId ? parseInt(interactionId) : null,
+      fileName,
+      fileUrl,
+      fileSize: parseInt(fileSize),
+      uploadedBy,
+      fileTitle,
+      fileDescription,
+      fileTags,
     });
 
     return NextResponse.json({

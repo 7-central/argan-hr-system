@@ -7,10 +7,24 @@ import { Search } from 'lucide-react';
 import { ClientCasesList } from '@/components/cases/client-cases-list';
 import { Input } from '@/components/ui/input';
 
+export interface CaseData {
+  id: number;
+  caseId: string;
+  title: string;
+  creationDate: string;
+  status: 'OPEN' | 'AWAITING' | 'CLOSED';
+  actionRequired: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+  escalatedBy: string;
+  assignedTo: string | null;
+  description?: string | null;
+  interactionCount?: number;
+  fileCount?: number;
+}
+
 interface CasesPageContentProps {
   clientId: number;
   clientName: string;
-  cases: never[]; // TODO: Replace with proper Case type
+  cases: CaseData[];
   showSearch?: boolean;
 }
 

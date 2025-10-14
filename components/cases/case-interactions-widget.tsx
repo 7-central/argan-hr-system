@@ -299,7 +299,7 @@ export function CaseInteractionsWidget({ caseId, clientId }: CaseInteractionsWid
 
               {/* First Party */}
               <div className="grid grid-cols-2 gap-4">
-                <Select value={party1Type} onValueChange={(value: any) => setParty1Type(value)}>
+                <Select value={party1Type} onValueChange={(value) => setParty1Type(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE')}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select party type" />
                   </SelectTrigger>
@@ -359,7 +359,7 @@ export function CaseInteractionsWidget({ caseId, clientId }: CaseInteractionsWid
 
               {/* Second Party */}
               <div className="grid grid-cols-2 gap-4">
-                <Select value={party2Type} onValueChange={(value: any) => setParty2Type(value)}>
+                <Select value={party2Type} onValueChange={(value) => setParty2Type(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE')}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select party type" />
                   </SelectTrigger>
