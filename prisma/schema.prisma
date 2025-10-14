@@ -85,6 +85,7 @@ model Client {
   internals           Internal[]
   archives            Archive[]
   audits              ClientAudit[]
+  cases               Case[]
 
   @@index([status])
   @@index([serviceTier])
@@ -285,6 +286,76 @@ model ClientAudit {
   @@map("client_audits")
 }
 
+// Client cases - case management for client HR issues
+model Case {
+  id                 Int          @id @default(autoincrement())
+  caseId             String       @unique @map("case_id") // Format: CASE-0001
+  clientId           Int          @map("client_id")
+  title              String
+  escalatedBy        String       @map("escalated_by")
+  assignedTo         String?      @map("assigned_to")
+  status             CaseStatus   @default(OPEN)
+  actionRequiredBy   ActionParty? @map("action_required_by")
+  description        String?      @db.Text
+
+  // Metadata
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  interactions       CaseInteraction[]
+  files              CaseFile[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([caseId])
+  @@map("cases")
+}
+
+// Case interactions - communication logs for cases
+model CaseInteraction {
+  id          Int          @id @default(autoincrement())
+  caseId      Int          @map("case_id")
+  party1Name  String       @map("party1_name")
+  party1Type  ActionParty  @map("party1_type")
+  party2Name  String       @map("party2_name")
+  party2Type  ActionParty  @map("party2_type")
+  content     String       @db.Text
+
+  // Metadata
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  files       CaseFile[]
+
+  @@index([caseId])
+  @@map("case_interactions")
+}
+
+// Case files - file attachments for cases and interactions
+model CaseFile {
+  id             Int              @id @default(autoincrement())
+  caseId         Int              @map("case_id")
+  interactionId  Int?             @map("interaction_id") // NULL = case-level, value = interaction-level
+  fileName       String           @map("file_name")
+  fileUrl        String           @map("file_url")
+  fileSize       Int              @map("file_size") // Size in bytes
+  uploadedBy     String           @map("uploaded_by")
+
+  // Metadata
+  uploadedAt     DateTime         @default(now()) @map("uploaded_at")
+
+  // Relations
+  case           Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  interaction    CaseInteraction? @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([interactionId])
+  @@map("case_files")
+}
+
 // Enums
 enum AdminRole {
   SUPER_ADMIN
@@ -348,4 +419,17 @@ enum AuditInterval {
 enum ClientType {
   COMPANY      @map("company")
   INDIVIDUAL   @map("individual")
+}
+
+enum CaseStatus {
+  OPEN
+  AWAITING
+  CLOSED
+}
+
+enum ActionParty {
+  ARGAN
+  CLIENT
+  CONTRACTOR
+  EMPLOYEE
 }
