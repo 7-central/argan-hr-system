@@ -23,6 +23,7 @@ export interface UpdateCaseInput {
   assignedTo?: string | null;
   status?: CaseStatus;
   actionRequiredBy?: ActionParty | null;
+  actionRequired?: string | null;
   description?: string | null;
 }
 
@@ -33,6 +34,8 @@ export interface CreateInteractionInput {
   party2Name: string;
   party2Type: ActionParty;
   content: string;
+  actionRequired?: string | null;
+  actionRequiredBy?: ActionParty | null;
 }
 
 export interface CreateFileInput {
@@ -177,7 +180,16 @@ export const caseService = {
    */
   async createInteraction(input: CreateInteractionInput) {
     return prisma.caseInteraction.create({
-      data: input,
+      data: {
+        caseId: input.caseId,
+        party1Name: input.party1Name,
+        party1Type: input.party1Type,
+        party2Name: input.party2Name,
+        party2Type: input.party2Type,
+        content: input.content,
+        actionRequired: input.actionRequired || null,
+        actionRequiredBy: input.actionRequiredBy || null,
+      },
       include: {
         _count: {
           select: {
@@ -185,6 +197,111 @@ export const caseService = {
           },
         },
       },
+    });
+  },
+
+  /**
+   * Set an interaction as the active action for its case
+   * This will unset all other active actions for the same case
+   * and update the case's action fields with the interaction's data
+   */
+  async setActiveAction(interactionId: number) {
+    // Get the interaction to find its case and action data
+    const interaction = await prisma.caseInteraction.findUnique({
+      where: { id: interactionId },
+    });
+
+    if (!interaction) {
+      throw new Error('Interaction not found');
+    }
+
+    // Use a transaction to ensure consistency
+    return prisma.$transaction(async (tx) => {
+      // First, unset all active actions for this case
+      await tx.caseInteraction.updateMany({
+        where: {
+          caseId: interaction.caseId,
+          isActiveAction: true,
+        },
+        data: {
+          isActiveAction: false,
+        },
+      });
+
+      // Set this interaction as the active action
+      const updatedInteraction = await tx.caseInteraction.update({
+        where: { id: interactionId },
+        data: { isActiveAction: true },
+        include: {
+          _count: {
+            select: {
+              files: true,
+            },
+          },
+        },
+      });
+
+      // Update the parent case with this interaction's action data
+      await tx.case.update({
+        where: { id: interaction.caseId },
+        data: {
+          actionRequired: interaction.actionRequired,
+          actionRequiredBy: interaction.actionRequiredBy,
+        },
+      });
+
+      return updatedInteraction;
+    });
+  },
+
+  /**
+   * Unset the active action for an interaction
+   * This will clear the isActiveAction flag and clear the case's action fields
+   */
+  async unsetActiveAction(interactionId: number) {
+    // Get the interaction to find its case
+    const interaction = await prisma.caseInteraction.findUnique({
+      where: { id: interactionId },
+    });
+
+    if (!interaction) {
+      throw new Error('Interaction not found');
+    }
+
+    // Use a transaction to ensure consistency
+    return prisma.$transaction(async (tx) => {
+      // Unset the active action flag
+      const updatedInteraction = await tx.caseInteraction.update({
+        where: { id: interactionId },
+        data: { isActiveAction: false },
+        include: {
+          _count: {
+            select: {
+              files: true,
+            },
+          },
+        },
+      });
+
+      // Clear the parent case's action fields
+      await tx.case.update({
+        where: { id: interaction.caseId },
+        data: {
+          actionRequired: null,
+          actionRequiredBy: null,
+        },
+      });
+
+      return updatedInteraction;
+    });
+  },
+
+  /**
+   * Delete an interaction
+   */
+  async deleteInteraction(id: number) {
+    return prisma.caseInteraction.delete({
+      where: { id },
     });
   },
 

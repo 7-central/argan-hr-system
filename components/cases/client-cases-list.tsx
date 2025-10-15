@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -42,6 +42,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
+import { createCase, updateCase, getAdminUsers } from '@/app/admin/(protected)/clients/[id]/cases/actions';
+
 import type { CaseData } from '@/components/cases/cases-page-content';
 
 
@@ -50,6 +52,12 @@ interface ClientCasesListProps {
   clientName: string;
   cases: CaseData[];
   searchTerm?: string;
+}
+
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
 }
 
 /**
@@ -70,6 +78,9 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
     escalatedBy: [],
   });
 
+  // Admin users state
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+
   // New case modal state
   const [isNewCaseDialogOpen, setIsNewCaseDialogOpen] = useState(false);
   const [newCaseTitle, setNewCaseTitle] = useState('');
@@ -78,6 +89,22 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
   const [newCaseStatus, setNewCaseStatus] = useState<'OPEN' | 'AWAITING' | 'CLOSED'>('OPEN');
   const [newCaseActionRequired, setNewCaseActionRequired] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'>('ARGAN');
   const [newCaseDescription, setNewCaseDescription] = useState('');
+
+  /**
+   * Load admin users on mount
+   */
+  useEffect(() => {
+    const loadAdminUsers = async () => {
+      const result = await getAdminUsers();
+      if (result.success && result.data) {
+        setAdminUsers(result.data);
+      } else {
+        toast.error(result.error || 'Failed to load admin users');
+      }
+    };
+
+    loadAdminUsers();
+  }, []);
 
   /**
    * Handle case click
@@ -102,20 +129,13 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
    * Handle action required change
    */
   const handleActionRequiredChange = async (id: number, caseId: string, newValue: string | null) => {
-    try {
-      const response = await fetch(`/api/cases/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actionRequiredBy: newValue }),
-      });
+    const result = await updateCase(id, { actionRequiredBy: newValue as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null });
 
-      if (!response.ok) throw new Error('Failed to update case');
-
+    if (result.success) {
       toast.success(`Action required changed to ${newValue || '-'}`);
-
       router.refresh();
-    } catch {
-      toast.error('Failed to update case');
+    } else {
+      toast.error(result.error || 'Failed to update case');
     }
   };
 
@@ -285,20 +305,13 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
    * Handle assigned to change
    */
   const handleAssignedToChange = async (id: number, caseId: string, newValue: string | null) => {
-    try {
-      const response = await fetch(`/api/cases/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignedTo: newValue }),
-      });
+    const result = await updateCase(id, { assignedTo: newValue });
 
-      if (!response.ok) throw new Error('Failed to update case');
-
+    if (result.success) {
       toast.success(`Assigned to ${newValue || '-'}`);
-
       router.refresh();
-    } catch {
-      toast.error('Failed to update case');
+    } else {
+      toast.error(result.error || 'Failed to update case');
     }
   };
 
@@ -306,20 +319,13 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
    * Handle case status change
    */
   const handleCaseStatusChange = async (id: number, caseId: string, newValue: string) => {
-    try {
-      const response = await fetch(`/api/cases/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newValue }),
-      });
+    const result = await updateCase(id, { status: newValue as 'OPEN' | 'AWAITING' | 'CLOSED' });
 
-      if (!response.ok) throw new Error('Failed to update case');
-
+    if (result.success) {
       toast.success(`Status changed to ${newValue}`);
-
       router.refresh();
-    } catch {
-      toast.error('Failed to update case');
+    } else {
+      toast.error(result.error || 'Failed to update case');
     }
   };
 
@@ -331,23 +337,17 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
       return;
     }
 
-    try {
-      const response = await fetch('/api/cases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          title: newCaseTitle,
-          escalatedBy: newCaseEscalatedBy,
-          assignedTo: newCaseAssignedTo,
-          status: newCaseStatus,
-          actionRequiredBy: newCaseActionRequired,
-          description: newCaseDescription,
-        }),
-      });
+    const result = await createCase({
+      clientId,
+      title: newCaseTitle,
+      escalatedBy: newCaseEscalatedBy,
+      assignedTo: newCaseAssignedTo,
+      status: newCaseStatus,
+      actionRequiredBy: newCaseActionRequired,
+      description: newCaseDescription,
+    });
 
-      if (!response.ok) throw new Error('Failed to create case');
-
+    if (result.success) {
       toast.success('New case has been created successfully');
 
       // Reset form
@@ -360,8 +360,8 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
       setIsNewCaseDialogOpen(false);
 
       router.refresh();
-    } catch {
-      toast.error('Failed to create case');
+    } else {
+      toast.error(result.error || 'Failed to create case');
     }
   };
 
@@ -642,15 +642,11 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                           <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, null)} className="justify-center">
                             <span className="text-sm text-muted-foreground">-</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, 'Kim Fletcher')}>
-                            <span className="text-sm">Kim Fletcher</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, 'Ric Thompson')}>
-                            <span className="text-sm">Ric Thompson</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, 'Sue Davies')}>
-                            <span className="text-sm">Sue Davies</span>
-                          </DropdownMenuItem>
+                          {adminUsers.map((admin) => (
+                            <DropdownMenuItem key={admin.id} onClick={() => handleAssignedToChange(caseItem.id, caseItem.caseId, admin.name)}>
+                              <span className="text-sm">{admin.name}</span>
+                            </DropdownMenuItem>
+                          ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -735,12 +731,17 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
               actionRequired: selectedCase.actionRequired,
               escalatedBy: selectedCase.escalatedBy,
               assignedTo: selectedCase.assignedTo,
+              description: selectedCase.description || null,
             }}
             clientId={clientId}
           />
 
           {/* Right: Case Interactions Widget */}
-          <CaseInteractionsWidget caseId={selectedCase.caseId} clientId={clientId} />
+          <CaseInteractionsWidget
+            caseId={selectedCase.caseId}
+            caseNumericId={selectedCase.id}
+            clientId={clientId}
+          />
         </div>
       )}
 
@@ -786,9 +787,11 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">-</SelectItem>
-                    <SelectItem value="Kim Fletcher">Kim Fletcher</SelectItem>
-                    <SelectItem value="Ric Thompson">Ric Thompson</SelectItem>
-                    <SelectItem value="Sue Davies">Sue Davies</SelectItem>
+                    {adminUsers.map((admin) => (
+                      <SelectItem key={admin.id} value={admin.name}>
+                        {admin.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

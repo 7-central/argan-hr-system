@@ -602,7 +602,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     className="w-full"
                   />
                 ) : (
-                  <p className="text-base">{client.companyName}</p>
+                  <p className="text-base">{companyName}</p>
                 )}
               </div>
 
@@ -620,7 +620,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     placeholder="e.g., 12345678"
                   />
                 ) : (
-                  <p className="text-base">{client.businessId || '-'}</p>
+                  <p className="text-base">{businessId || '-'}</p>
                 )}
               </div>
 
@@ -636,7 +636,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     disabled={isSaving}
                   />
                 ) : (
-                  <p className="text-base">{client.sector || '-'}</p>
+                  <p className="text-base">{sector || '-'}</p>
                 )}
               </div>
 
@@ -657,7 +657,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-base">{getServiceTierLabel(client.serviceTier)}</p>
+                  <p className="text-base">{getServiceTierLabel(serviceTier)}</p>
                 )}
               </div>
 
@@ -678,7 +678,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-base">{getStatusLabel(client.status)}</p>
+                  <p className="text-base">{getStatusLabel(status)}</p>
                 )}
               </div>
 
@@ -700,7 +700,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     />
                   ) : (
                     <p className="text-base">
-                      {client.monthlyRetainer ? `£${client.monthlyRetainer.toFixed(2)}` : '-'}
+                      {monthlyRetainer ? `£${parseFloat(monthlyRetainer).toFixed(2)}` : '-'}
                     </p>
                   )}
                 </div>
@@ -720,7 +720,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     className="w-full"
                   />
                 ) : (
-                  <p className="text-base">{formatDate(client.lastPriceIncrease)}</p>
+                  <p className="text-base">{formatDate(lastPriceIncrease)}</p>
                 )}
               </div>
             </div>
@@ -904,7 +904,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                   <span className="text-sm">{externalAudit ? 'Yes' : 'No'}</span>
                 </div>
               ) : (
-                <p className="text-base">{client.externalAudit ? 'Yes' : 'No'}</p>
+                <p className="text-base">{externalAudit ? 'Yes' : 'No'}</p>
               )}
             </div>
 
@@ -1055,7 +1055,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                     </Select>
                   ) : (
                     <p className="text-base">
-                      {client.paymentMethod === 'DIRECT_DEBIT' ? 'Direct Debit' : 'Invoice'}
+                      {paymentMethod === 'DIRECT_DEBIT' ? 'Direct Debit' : 'Invoice'}
                     </p>
                   )}
                 </div>
@@ -1098,7 +1098,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                           <span className="text-sm">Setup complete</span>
                         </div>
                       ) : (
-                        <p className="text-base">{client.directDebitSetup ? 'Yes' : 'No'}</p>
+                        <p className="text-base">{directDebitSetup ? 'Yes' : 'No'}</p>
                       )}
                     </div>
 
@@ -1117,7 +1117,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                           <span className="text-sm">Confirmed</span>
                         </div>
                       ) : (
-                        <p className="text-base">{client.directDebitConfirmed ? 'Yes' : 'No'}</p>
+                        <p className="text-base">{directDebitConfirmed ? 'Yes' : 'No'}</p>
                       )}
                     </div>
                   </>
@@ -1139,7 +1139,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                       <span className="text-sm">Added to Xero</span>
                     </div>
                   ) : (
-                    <p className="text-base">{client.contractAddedToXero ? 'Yes' : 'No'}</p>
+                    <p className="text-base">{contractAddedToXero ? 'Yes' : 'No'}</p>
                   )}
                 </div>
 
@@ -1160,7 +1160,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                         <span className="text-sm">Setup complete</span>
                       </div>
                     ) : (
-                      <p className="text-base">{client.recurringInvoiceSetup ? 'Yes' : 'No'}</p>
+                      <p className="text-base">{recurringInvoiceSetup ? 'Yes' : 'No'}</p>
                     )}
                   </div>
                 )}
@@ -1181,7 +1181,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                       <span className="text-sm">Signed</span>
                     </div>
                   ) : (
-                    <p className="text-base">{client.dpaSignedGdpr ? 'Yes' : 'No'}</p>
+                    <p className="text-base">{dpaSignedGdpr ? 'Yes' : 'No'}</p>
                   )}
                 </div>
 
@@ -1201,7 +1201,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                       <span className="text-sm">Sent</span>
                     </div>
                   ) : (
-                    <p className="text-base">{client.firstInvoiceSent ? 'Yes' : 'No'}</p>
+                    <p className="text-base">{firstInvoiceSent ? 'Yes' : 'No'}</p>
                   )}
                 </div>
 
@@ -1221,7 +1221,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                       <span className="text-sm">Received</span>
                     </div>
                   ) : (
-                    <p className="text-base">{client.firstPaymentMade ? 'Yes' : 'No'}</p>
+                    <p className="text-base">{firstPaymentMade ? 'Yes' : 'No'}</p>
                   )}
                 </div>
               </div>
@@ -1304,7 +1304,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                           className="w-full"
                         />
                       ) : (
-                        <p className="text-base">{formatDate(activeContract.contractStartDate)}</p>
+                        <p className="text-base">{formatDate(contractStartDate)}</p>
                       )}
                     </div>
 
@@ -1321,7 +1321,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                           className="w-full"
                         />
                       ) : (
-                        <p className="text-base">{formatDate(activeContract.contractRenewalDate)}</p>
+                        <p className="text-base">{formatDate(contractRenewalDate)}</p>
                       )}
                     </div>
                   </div>
@@ -1383,8 +1383,8 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                               </div>
                             ) : (
                               <p className="text-base">
-                                {activeContract.hrAdminInclusiveHours
-                                  ? `${activeContract.hrAdminInclusiveHours} hours ${activeContract.hrAdminInclusiveHoursPeriod ? `per ${activeContract.hrAdminInclusiveHoursPeriod.toLowerCase().replace('ly', '')}` : ''}`
+                                {hrAdminInclusiveHours
+                                  ? `${hrAdminInclusiveHours} hours ${hrAdminInclusiveHoursPeriod ? `per ${hrAdminInclusiveHoursPeriod.toLowerCase().replace('ly', '')}` : ''}`
                                   : '-'}
                               </p>
                             )}
@@ -1422,8 +1422,8 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                               </div>
                             ) : (
                               <p className="text-base">
-                                {activeContract.employmentLawInclusiveHours
-                                  ? `${activeContract.employmentLawInclusiveHours} hours ${activeContract.employmentLawInclusiveHoursPeriod ? `per ${activeContract.employmentLawInclusiveHoursPeriod.toLowerCase().replace('ly', '')}` : ''}`
+                                {employmentLawInclusiveHours
+                                  ? `${employmentLawInclusiveHours} hours ${employmentLawInclusiveHoursPeriod ? `per ${employmentLawInclusiveHoursPeriod.toLowerCase().replace('ly', '')}` : ''}`
                                   : '-'}
                               </p>
                             )}
@@ -1518,8 +1518,8 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                               </div>
                             ) : (
                               <p className="text-base">
-                                {activeContract.hrAdminRate
-                                  ? `£${activeContract.hrAdminRate} per ${hrAdminRateUnit === 'HOURLY' ? 'hour' : 'day'}`
+                                {hrAdminRate
+                                  ? `£${hrAdminRate} per ${hrAdminRateUnit === 'HOURLY' ? 'hour' : 'day'}`
                                   : '-'}
                               </p>
                             )}
@@ -1555,8 +1555,8 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                               </div>
                             ) : (
                               <p className="text-base">
-                                {activeContract.employmentLawRate
-                                  ? `£${activeContract.employmentLawRate} per ${employmentLawRateUnit === 'HOURLY' ? 'hour' : 'day'}`
+                                {employmentLawRate
+                                  ? `£${employmentLawRate} per ${employmentLawRateUnit === 'HOURLY' ? 'hour' : 'day'}`
                                   : '-'}
                               </p>
                             )}
@@ -1578,7 +1578,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                               />
                             ) : (
                               <p className="text-base">
-                                {activeContract.mileageRate ? `£${activeContract.mileageRate}` : '-'}
+                                {mileageRate ? `£${mileageRate}` : '-'}
                               </p>
                             )}
                           </div>
@@ -1599,7 +1599,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
                               />
                             ) : (
                               <p className="text-base">
-                                {activeContract.overnightRate ? `£${activeContract.overnightRate}` : '-'}
+                                {overnightRate ? `£${overnightRate}` : '-'}
                               </p>
                             )}
                           </div>

@@ -296,6 +296,7 @@ model Case {
   assignedTo         String?      @map("assigned_to")
   status             CaseStatus   @default(OPEN)
   actionRequiredBy   ActionParty? @map("action_required_by")
+  actionRequired     String?      @db.Text @map("action_required") // Text description of what action is needed
   description        String?      @db.Text
 
   // Metadata
@@ -315,22 +316,28 @@ model Case {
 
 // Case interactions - communication logs for cases
 model CaseInteraction {
-  id          Int          @id @default(autoincrement())
-  caseId      Int          @map("case_id")
-  party1Name  String       @map("party1_name")
-  party1Type  ActionParty  @map("party1_type")
-  party2Name  String       @map("party2_name")
-  party2Type  ActionParty  @map("party2_type")
-  content     String       @db.Text
+  id                Int          @id @default(autoincrement())
+  caseId            Int          @map("case_id")
+  party1Name        String       @map("party1_name")
+  party1Type        ActionParty  @map("party1_type")
+  party2Name        String       @map("party2_name")
+  party2Type        ActionParty  @map("party2_type")
+  content           String       @db.Text
+
+  // Action tracking
+  actionRequired    String?      @db.Text @map("action_required") // What action is needed from this interaction
+  actionRequiredBy  ActionParty? @map("action_required_by") // Who needs to take action
+  isActiveAction    Boolean      @default(false) @map("is_active_action") // If true, this interaction's action bubbles up to the Case
 
   // Metadata
-  createdAt   DateTime     @default(now()) @map("created_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
 
   // Relations
-  case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  files       CaseFile[]
+  case              Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  files             CaseFile[]
 
   @@index([caseId])
+  @@index([isActiveAction])
   @@map("case_interactions")
 }
 

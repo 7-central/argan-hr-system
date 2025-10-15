@@ -20,6 +20,7 @@ interface CaseDetailsWidgetProps {
     actionRequired: string | null;
     escalatedBy: string;
     assignedTo: string | null;
+    description: string | null;
   };
   clientId: number;
 }
@@ -31,7 +32,8 @@ interface CaseDetailsWidgetProps {
 export function CaseDetailsWidget({ caseData, clientId }: CaseDetailsWidgetProps) {
   const [title, setTitle] = useState(caseData.title);
   const [escalatedBy, setEscalatedBy] = useState(caseData.escalatedBy);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(caseData.description || '');
+  const [actionRequiredText, setActionRequiredText] = useState(caseData.actionRequired || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -80,7 +82,7 @@ export function CaseDetailsWidget({ caseData, clientId }: CaseDetailsWidgetProps
     setIsSaving(true);
     setIsSaved(false);
 
-    // TODO: Call API to save all changes (title, escalatedBy, description)
+    // TODO: Call API to save all changes (title, escalatedBy, description, actionRequired)
     await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
 
     setIsSaving(false);
@@ -191,6 +193,19 @@ export function CaseDetailsWidget({ caseData, clientId }: CaseDetailsWidgetProps
             <span className={`inline-flex items-center justify-center px-3 py-1 rounded text-sm font-medium w-[110px] ${getActionRequiredColor(caseData.actionRequired)}`}>
               {caseData.actionRequired || '-'}
             </span>
+          </div>
+        </div>
+
+        {/* Action Required */}
+        <div className="grid grid-cols-3 gap-2 items-center">
+          <Label className="text-sm font-semibold text-muted-foreground">Action Required</Label>
+          <div className="col-span-2">
+            <Input
+              value={actionRequiredText}
+              onChange={(e) => setActionRequiredText(e.target.value)}
+              className="h-8 text-sm"
+              placeholder="What action is needed..."
+            />
           </div>
         </div>
 

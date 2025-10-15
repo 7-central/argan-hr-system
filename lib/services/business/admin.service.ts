@@ -30,6 +30,27 @@ export class AdminService {
   constructor(private readonly db: PrismaClient) {}
 
   /**
+   * Get all active admin users (simple list for dropdowns)
+   */
+  async getActiveAdminUsers(): Promise<Array<{ id: string; name: string; email: string }>> {
+    const admins = await this.db.admin.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return admins;
+  }
+
+  /**
    * Get admin users with search and pagination
    */
   async getAdmins(params: GetAdminsParams): Promise<AdminResponse> {
