@@ -210,6 +210,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
     : null;
 
   // Client state
+  const [clientType, setClientType] = useState<'COMPANY' | 'INDIVIDUAL'>(client.clientType);
   const [companyName, setCompanyName] = useState(client.companyName);
   const [businessId, setBusinessId] = useState(client.businessId || '');
   const [sector, setSector] = useState(client.sector || '');
@@ -377,6 +378,7 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
     try {
       // Save client changes
       const result = await updateClient(client.id, {
+        clientType,
         companyName,
         businessId: businessId || undefined,
         sector: sector || undefined,
@@ -588,11 +590,85 @@ export function ClientViewContent({ client, editMode: initialEditMode, activeTab
             )}
           </CardHeader>
           <CardContent>
+            {/* Client Type Selection - Only visible in edit mode */}
+            {editMode && (
+              <div className="space-y-3 pb-4 mb-4 border-b">
+                <Label>Client Type <span className="text-red-500">*</span></Label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setClientType('COMPANY')}
+                    disabled={isSaving}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 rounded-md border text-sm
+                      transition-all duration-200
+                      ${
+                        clientType === 'COMPANY'
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border hover:border-primary/30'
+                      }
+                      ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    <div
+                      className={`
+                        w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0
+                        transition-all duration-200
+                        ${
+                          clientType === 'COMPANY'
+                            ? 'border-primary'
+                            : 'border-muted-foreground/30'
+                        }
+                      `}
+                    >
+                      {clientType === 'COMPANY' && (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <span className="text-left">Company</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setClientType('INDIVIDUAL')}
+                    disabled={isSaving}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 rounded-md border text-sm
+                      transition-all duration-200
+                      ${
+                        clientType === 'INDIVIDUAL'
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border hover:border-primary/30'
+                      }
+                      ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    <div
+                      className={`
+                        w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0
+                        transition-all duration-200
+                        ${
+                          clientType === 'INDIVIDUAL'
+                            ? 'border-primary'
+                            : 'border-muted-foreground/30'
+                        }
+                      `}
+                    >
+                      {clientType === 'INDIVIDUAL' && (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <span className="text-left">Individual</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2">
               {/* Company Name / Name */}
               <div className="space-y-2">
                 <Label htmlFor="companyName" className="text-sm font-medium text-muted-foreground">
-                  {client.clientType === 'COMPANY' ? 'Company Name' : 'Name'}
+                  {clientType === 'COMPANY' ? 'Company Name' : 'Name'}
                 </Label>
                 {editMode ? (
                   <Input
