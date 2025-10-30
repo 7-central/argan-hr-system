@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-import { Plus, User, Calendar, Trash2, Paperclip, Flag } from 'lucide-react';
+import { Plus, User, Calendar, Trash2, Paperclip, Flag, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { FileUploadModal } from '@/components/cases/file-upload-modal';
@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   getInteractionsByCaseId,
   createInteraction,
+  updateInteraction,
   deleteInteraction,
   getAdminUsers,
   setActiveAction,
@@ -81,6 +82,8 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
   const [viewingInteraction, setViewingInteraction] = useState<Interaction | null>(null);
   const [uploadInteractionId, setUploadInteractionId] = useState<number | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [expandedInteractions, setExpandedInteractions] = useState<Set<number>>(new Set());
+  const [editingInteraction, setEditingInteraction] = useState<Interaction | null>(null);
 
   // First party state
   const [party1Type, setParty1Type] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'>('ARGAN');
@@ -122,6 +125,8 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
       const result = await getInteractionsByCaseId(caseNumericId);
 
       if (result.success && result.data) {
+        // Sort by date descending (most recent first)
+        // The data comes from the server already sorted by createdAt desc
         setInteractions(result.data);
       } else {
         toast.error(result.error || 'Failed to load interactions');
@@ -206,6 +211,119 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
   };
 
   /**
+   * Toggle expand/collapse for an interaction card
+   */
+  const toggleExpanded = (interactionId: number) => {
+    setExpandedInteractions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(interactionId)) {
+        newSet.delete(interactionId);
+      } else {
+        newSet.add(interactionId);
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * Open edit modal for an interaction
+   */
+  const handleEditInteraction = (interaction: Interaction) => {
+    setEditingInteraction(interaction);
+
+    // Populate form fields with interaction data
+    setNewInteractionText(interaction.content);
+    setActionRequired(interaction.actionRequired || '');
+    setActionRequiredBy((interaction.actionRequiredBy as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE') || '');
+
+    // Set party 1 data
+    setParty1Type(interaction.party1Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE');
+    if (interaction.party1Type === 'ARGAN') {
+      setParty1ArganUser(interaction.party1Name);
+    } else if (interaction.party1Type === 'CONTRACTOR') {
+      setParty1Contractor(interaction.party1Name);
+    } else {
+      setParty1FreeText(interaction.party1Name);
+    }
+
+    // Set party 2 data
+    setParty2Type(interaction.party2Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE');
+    if (interaction.party2Type === 'ARGAN') {
+      setParty2ArganUser(interaction.party2Name);
+    } else if (interaction.party2Type === 'CONTRACTOR') {
+      setParty2Contractor(interaction.party2Name);
+    } else {
+      setParty2FreeText(interaction.party2Name);
+    }
+
+    setIsDialogOpen(true);
+  };
+
+  /**
+   * Handle updating an existing interaction
+   */
+  const handleUpdateInteraction = async () => {
+    if (!editingInteraction) return;
+
+    // Determine party 1 name
+    let party1Name = '';
+    if (party1Type === 'ARGAN') {
+      party1Name = party1ArganUser;
+    } else if (party1Type === 'CONTRACTOR') {
+      party1Name = party1Contractor;
+    } else {
+      party1Name = party1FreeText;
+    }
+
+    // Determine party 2 name
+    let party2Name = '';
+    if (party2Type === 'ARGAN') {
+      party2Name = party2ArganUser;
+    } else if (party2Type === 'CONTRACTOR') {
+      party2Name = party2Contractor;
+    } else {
+      party2Name = party2FreeText;
+    }
+
+    if (newInteractionText.trim() && party1Name.trim() && party2Name.trim()) {
+      const result = await updateInteraction(editingInteraction.id, {
+        party1Name,
+        party1Type,
+        party2Name,
+        party2Type,
+        content: newInteractionText.trim(),
+        actionRequired: actionRequired.trim() || null,
+        actionRequiredBy: actionRequiredBy || null,
+      });
+
+      if (result.success && result.data) {
+        // Update the interaction in the list
+        setInteractions(interactions.map(i =>
+          i.id === editingInteraction.id ? result.data! : i
+        ));
+        toast.success('Interaction updated successfully');
+
+        // Reset form and close dialog
+        setNewInteractionText('');
+        setParty1ArganUser('');
+        setParty1Contractor('');
+        setParty1FreeText('');
+        setParty2ArganUser('');
+        setParty2Contractor('');
+        setParty2FreeText('');
+        setParty1Type('ARGAN');
+        setParty2Type('CLIENT');
+        setActionRequired('');
+        setActionRequiredBy('');
+        setEditingInteraction(null);
+        setIsDialogOpen(false);
+      } else {
+        toast.error(result.error || 'Failed to update interaction');
+      }
+    }
+  };
+
+  /**
    * Handle toggle active action flag
    */
   const handleToggleActiveAction = async (interaction: Interaction) => {
@@ -218,6 +336,12 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         setInteractions(interactions.map(i =>
           i.id === interaction.id ? { ...i, isActiveAction: false } : i
         ));
+
+        // If we're editing this interaction, update the editing state too
+        if (editingInteraction && editingInteraction.id === interaction.id) {
+          setEditingInteraction({ ...editingInteraction, isActiveAction: false });
+        }
+
         toast.success('Active action cleared');
       } else {
         toast.error(result.error || 'Failed to clear active action');
@@ -232,6 +356,15 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
           ...i,
           isActiveAction: i.id === interaction.id,
         })));
+
+        // If we're editing any interaction, update its state
+        if (editingInteraction) {
+          setEditingInteraction({
+            ...editingInteraction,
+            isActiveAction: editingInteraction.id === interaction.id,
+          });
+        }
+
         toast.success('Active action set');
       } else {
         toast.error(result.error || 'Failed to set active action');
@@ -245,9 +378,9 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
   const getInteractionTypeBadge = (type: string): string => {
     switch (type) {
       case 'ARGAN':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-900';
       case 'CLIENT':
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-100 text-gray-900';
       case 'CONTRACTOR':
         return 'bg-blue-100 text-blue-700';
       case 'EMPLOYEE':
@@ -283,12 +416,15 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
 
   return (
     <>
-      <Card>
+      <Card className="bg-muted/50">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Interaction Log</CardTitle>
           <Button
             size="sm"
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => {
+              setEditingInteraction(null);
+              setIsDialogOpen(true);
+            }}
             className="h-8"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -307,27 +443,42 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsDialogOpen(true)}
+                onClick={() => {
+                  setEditingInteraction(null);
+                  setIsDialogOpen(true);
+                }}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add First Interaction
               </Button>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {interactions.map((interaction) => {
-                // Get first line of content for preview
-                const firstLine = interaction.content.split('\n')[0];
-                const contentPreview = firstLine.length > 80
-                  ? firstLine.substring(0, 80) + '...'
-                  : firstLine + (interaction.content.includes('\n') || interaction.content.length > firstLine.length ? '...' : '');
-
+                const isExpanded = expandedInteractions.has(interaction.id);
                 return (
                   <div
                     key={interaction.id}
-                    onClick={() => setViewingInteraction(interaction)}
-                    className="border rounded-lg p-3 bg-card hover:shadow-sm transition-shadow cursor-pointer group relative"
+                    className={`border border-green-700 rounded-lg p-3 bg-card hover:shadow-sm transition-shadow group relative ${!isExpanded ? 'cursor-pointer' : ''}`}
+                    onClick={() => !isExpanded && handleEditInteraction(interaction)}
                   >
+                    {/* Chevron button in top left */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpanded(interaction.id);
+                      }}
+                      className="absolute top-3 left-3 h-6 w-6 text-muted-foreground hover:text-foreground z-10"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+
                     {/* Action buttons in top right */}
                     <div className="absolute top-3 right-3 flex items-center gap-1">
                       {/* Flag button - always visible if active, shown on hover otherwise */}
@@ -372,39 +523,128 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                       </Button>
                     </div>
 
-                    {/* Content area with left padding to avoid action buttons */}
-                    <div className="pr-16">
-                      {/* First party */}
-                      <div className="flex items-center gap-1.5 mb-1">
-                        {renderAvatar(interaction.party1Name, interaction.party1Type)}
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getInteractionTypeBadge(interaction.party1Type)}`}>
-                          {interaction.party1Type}
-                        </span>
-                        <span className="text-sm font-medium">{interaction.party1Name}</span>
+                    {/* Content area with padding to avoid buttons on both sides */}
+                    <div className="pl-10 pr-28 space-y-3">
+                      {/* Interaction Between section - always visible */}
+                      <div className="border rounded-lg p-3 bg-muted/30">
+                        {isExpanded ? (
+                          <>
+                            {/* Expanded view - header with date */}
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-semibold">Interaction Between...</span>
+                              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                <span>{interaction.date}</span>
+                              </div>
+                            </div>
+
+                            {/* First party - light grey text, smaller */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{interaction.party1Name}</span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getInteractionTypeBadge(interaction.party1Type)}`}>
+                                {interaction.party1Type}
+                              </span>
+                            </div>
+
+                            {/* "and" separator */}
+                            <div className="text-xs text-muted-foreground my-1">and</div>
+
+                            {/* Second party - light grey text, smaller */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{interaction.party2Name}</span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getInteractionTypeBadge(interaction.party2Type)}`}>
+                                {interaction.party2Type}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Collapsed view - 4 column x 2 row grid */}
+                            {/* Col 1: 1fr (equal) | Col 2: arrow width | Col 3: 1fr (equal) | Col 4: fixed 110px for badge/date */}
+                            <div className="grid grid-cols-[1fr_auto_1fr_110px] grid-rows-2 gap-x-2 gap-y-1 h-[75px]">
+                              {/* Row 1, Col 1-3: "Interaction Between..." spans 3 columns */}
+                              <div className="col-start-1 col-span-3 row-start-1 flex items-center">
+                                <span className="text-sm font-semibold">Interaction Between...</span>
+                              </div>
+
+                              {/* Row 1, Col 4: Action Badge */}
+                              <div className="col-start-4 row-start-1 flex items-center justify-end">
+                                {interaction.actionRequiredBy && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs">⚠️</span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getInteractionTypeBadge(interaction.actionRequiredBy)}`}>
+                                      {interaction.actionRequiredBy}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Row 2, Col 1: Party 1 Name */}
+                              <div className="col-start-1 row-start-2 flex items-center">
+                                <span className="text-xs text-muted-foreground">{interaction.party1Name}</span>
+                              </div>
+
+                              {/* Row 2, Col 2: Arrow */}
+                              <div className="col-start-2 row-start-2 flex items-center justify-center">
+                                <span className="text-xs text-muted-foreground">↔</span>
+                              </div>
+
+                              {/* Row 2, Col 3: Party 2 Name */}
+                              <div className="col-start-3 row-start-2 flex items-center">
+                                <span className="text-xs text-muted-foreground">{interaction.party2Name}</span>
+                              </div>
+
+                              {/* Row 2, Col 4: Date */}
+                              <div className="col-start-4 row-start-2 flex items-center justify-end">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{interaction.date}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
 
-                      {/* "And" separator */}
-                      <div className="text-xs text-muted-foreground mb-1 ml-1">And</div>
+                      {/* Expanded content */}
+                      {isExpanded && (
+                        <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
+                          {/* Action Required section at top if set */}
+                          {(interaction.actionRequiredBy || interaction.actionRequired) && (
+                            <div className="flex items-start gap-2 pb-2 border-b">
+                              <span className="text-base">⚠️</span>
+                              <div className="flex-1 space-y-1">
+                                {/* Action Required By row */}
+                                {interaction.actionRequiredBy && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-muted-foreground">Action Required By:</span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getInteractionTypeBadge(interaction.actionRequiredBy)}`}>
+                                      {interaction.actionRequiredBy}
+                                    </span>
+                                  </div>
+                                )}
+                                {/* Action Required text row */}
+                                {interaction.actionRequired && (
+                                  <div>
+                                    <span className="text-xs font-semibold text-muted-foreground">Action Required: </span>
+                                    <span className="text-xs text-muted-foreground" title={interaction.actionRequired}>
+                                      {interaction.actionRequired}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
-                      {/* Second party */}
-                      <div className="flex items-center gap-1.5 mb-2">
-                        {renderAvatar(interaction.party2Name, interaction.party2Type)}
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getInteractionTypeBadge(interaction.party2Type)}`}>
-                          {interaction.party2Type}
-                        </span>
-                        <span className="text-sm font-medium">{interaction.party2Name}</span>
-                      </div>
-
-                      {/* Content preview */}
-                      <p className="text-sm text-foreground mb-2 line-clamp-1">
-                        {contentPreview}
-                      </p>
-
-                      {/* Timestamp */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>{interaction.date}</span>
-                      </div>
+                          {/* Interaction Details */}
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-muted-foreground">Interaction Details:</span>
+                            <p className="text-[11px] text-muted-foreground" title={interaction.content}>
+                              {interaction.content}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -414,16 +654,21 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         </CardContent>
       </Card>
 
-      {/* Add Interaction Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+      {/* Add/Edit Interaction Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) {
+          setEditingInteraction(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Add Interaction</DialogTitle>
+            <DialogTitle>{editingInteraction ? 'Edit Interaction' : 'Add Interaction'}</DialogTitle>
             <DialogDescription>
-              Record a new interaction for case {caseId}
+              {editingInteraction ? `Edit interaction for case ${caseId}` : `Record a new interaction for case ${caseId}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1">
             {/* Interaction Between */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">Interaction Between</Label>
@@ -546,7 +791,26 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
 
             {/* Action Required Section */}
             <div className="space-y-3 pt-2 border-t">
-              <Label className="text-base font-semibold">Action Required (Optional)</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Action Required (Optional)</Label>
+                {editingInteraction && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      handleToggleActiveAction(editingInteraction);
+                    }}
+                    className={`h-7 w-7 p-0 ${
+                      editingInteraction.isActiveAction
+                        ? 'text-orange-600 hover:text-orange-700'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={editingInteraction.isActiveAction ? 'Clear active action' : 'Set as active action'}
+                  >
+                    <Flag className={`h-4 w-4 ${editingInteraction.isActiveAction ? 'fill-current' : ''}`} />
+                  </Button>
+                )}
+              </div>
 
               {/* Action Required By */}
               <div className="space-y-2">
@@ -567,7 +831,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
 
               {/* Action Required Text */}
               <div className="space-y-2">
-                <Label htmlFor="action-required-text" className="text-sm">What Action is Needed</Label>
+                <Label htmlFor="action-required-text" className="text-sm">Action Required</Label>
                 <Input
                   id="action-required-text"
                   placeholder="Describe the action that needs to be taken..."
@@ -584,7 +848,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
               <Textarea
                 id="interaction-content"
                 placeholder="Enter what was discussed or any relevant notes..."
-                className="min-h-[300px] resize-none"
+                className="min-h-[150px] resize-none"
                 value={newInteractionText}
                 onChange={(e) => setNewInteractionText(e.target.value)}
               />
@@ -595,7 +859,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
               Cancel
             </Button>
             <Button
-              onClick={handleAddInteraction}
+              onClick={editingInteraction ? handleUpdateInteraction : handleAddInteraction}
               disabled={
                 !newInteractionText.trim() ||
                 // Party 1 validation
@@ -608,7 +872,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                 ((party2Type === 'CLIENT' || party2Type === 'EMPLOYEE') && !party2FreeText.trim())
               }
             >
-              Add Interaction
+              {editingInteraction ? 'Save Changes' : 'Add Interaction'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -33,10 +33,8 @@ const navData = {
     },
     {
       title: 'Cases',
-      url: '#',
+      url: '/admin/cases',
       icon: FolderOpen,
-      badge: 'Coming Soon',
-      disabled: true,
     },
     {
       title: 'Contractors',

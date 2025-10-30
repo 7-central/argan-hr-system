@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Modern CSS Architecture - Mobile-first foundation */
+@import '../lib/styles/layers.css';
+@import '../lib/styles/tokens.css';
+@import '../lib/styles/primitives.css';
+
 @custom-variant dark (&:is(.dark *));
 
 @keyframes aurora {

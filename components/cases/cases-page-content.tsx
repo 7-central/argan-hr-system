@@ -13,7 +13,8 @@ export interface CaseData {
   title: string;
   creationDate: string;
   status: 'OPEN' | 'AWAITING' | 'CLOSED';
-  actionRequired: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+  actionRequiredBy: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+  actionRequired: string | null;
   escalatedBy: string;
   assignedTo: string | null;
   description?: string | null;
@@ -36,7 +37,7 @@ export function CasesPageContent({ clientId, clientName, cases, showSearch = tru
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
-    <>
+    <div className="w-full">
       {showSearch && (
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -51,6 +52,6 @@ export function CasesPageContent({ clientId, clientName, cases, showSearch = tru
 
       {/* Client Cases List */}
       <ClientCasesList clientId={clientId} clientName={clientName} cases={cases} searchTerm={searchTerm} />
-    </>
+    </div>
   );
 }

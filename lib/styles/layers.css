@@ -1,0 +1,35 @@
+/**
+ * Cascade Layers
+ *
+ * Defines the order of CSS layers for predictable specificity.
+ * Lower layers have lower priority, higher layers win.
+ *
+ * This eliminates !important wars and makes overrides explicit.
+ *
+ * Layer Order (lowest to highest priority):
+ * 1. reset      - CSS resets and normalizations
+ * 2. tokens     - Design tokens (variables)
+ * 3. base       - Base element styles
+ * 4. layout     - Layout primitives and page structure
+ * 5. components - Component styles
+ * 6. utilities  - Utility classes
+ * 7. overrides  - Explicit overrides (use sparingly)
+ */
+
+@layer reset, tokens, base, layout, components, utilities, overrides;
+
+/**
+ * Usage in other CSS files:
+ *
+ * @layer base {
+ *   body { font-family: system-ui; }
+ * }
+ *
+ * @layer components {
+ *   .card { padding: var(--space-4); }
+ * }
+ *
+ * @layer utilities {
+ *   .sr-only { position: absolute; clip: rect(0,0,0,0); }
+ * }
+ */

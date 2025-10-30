@@ -5,50 +5,13 @@
 
 import { prisma } from '@/lib/database';
 
-import type { CaseStatus, ActionParty } from '@prisma/client';
-
-export interface CreateCaseInput {
-  clientId: number;
-  title: string;
-  escalatedBy: string;
-  assignedTo?: string | null;
-  status?: CaseStatus;
-  actionRequiredBy?: ActionParty | null;
-  description?: string | null;
-}
-
-export interface UpdateCaseInput {
-  title?: string;
-  escalatedBy?: string;
-  assignedTo?: string | null;
-  status?: CaseStatus;
-  actionRequiredBy?: ActionParty | null;
-  actionRequired?: string | null;
-  description?: string | null;
-}
-
-export interface CreateInteractionInput {
-  caseId: number;
-  party1Name: string;
-  party1Type: ActionParty;
-  party2Name: string;
-  party2Type: ActionParty;
-  content: string;
-  actionRequired?: string | null;
-  actionRequiredBy?: ActionParty | null;
-}
-
-export interface CreateFileInput {
-  caseId: number;
-  interactionId?: number | null;
-  fileName: string;
-  fileUrl: string;
-  fileSize: number;
-  uploadedBy: string;
-  fileTitle?: string | null;
-  fileDescription?: string | null;
-  fileTags?: string[];
-}
+import type {
+  CreateCaseInput,
+  UpdateCaseInput,
+  CreateInteractionInput,
+  CreateFileInput,
+} from '@/lib/types/case';
+import type { ActionParty } from '@prisma/client';
 
 export const caseService = {
   /**
@@ -67,6 +30,44 @@ export const caseService = {
         },
       },
     });
+  },
+
+  /**
+   * Get all cases across all clients (for call log view)
+   * Returns cases with client info and last interaction date
+   */
+  async getAllCases() {
+    const cases = await prisma.case.findMany({
+      include: {
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            serviceTier: true,
+            status: true,
+          },
+        },
+        interactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            interactions: true,
+            files: true,
+          },
+        },
+      },
+    });
+
+    // Transform to include lastInteractionDate
+    return cases.map(caseItem => ({
+      ...caseItem,
+      lastInteractionDate: caseItem.interactions[0]?.createdAt || caseItem.createdAt,
+    }));
   },
 
   /**
@@ -118,6 +119,7 @@ export const caseService = {
         assignedTo: input.assignedTo || null,
         status: input.status || 'OPEN',
         actionRequiredBy: input.actionRequiredBy || null,
+        actionRequired: input.actionRequired || null,
         description: input.description || null,
       },
       include: {
@@ -191,6 +193,35 @@ export const caseService = {
         actionRequiredBy: input.actionRequiredBy || null,
       },
       include: {
+        _count: {
+          select: {
+            files: true,
+          },
+        },
+      },
+    });
+  },
+
+  /**
+   * Update an interaction
+   */
+  async updateInteraction(
+    interactionId: number,
+    input: {
+      party1Name?: string;
+      party1Type?: ActionParty;
+      party2Name?: string;
+      party2Type?: ActionParty;
+      content?: string;
+      actionRequired?: string | null;
+      actionRequiredBy?: ActionParty | null;
+    }
+  ) {
+    return prisma.caseInteraction.update({
+      where: { id: interactionId },
+      data: input,
+      include: {
+        case: true,
         _count: {
           select: {
             files: true,
@@ -298,10 +329,37 @@ export const caseService = {
 
   /**
    * Delete an interaction
+   * If the interaction is the active action, clear the case's action fields
    */
   async deleteInteraction(id: number) {
-    return prisma.caseInteraction.delete({
+    // Get the interaction first to check if it's active and get the caseId
+    const interaction = await prisma.caseInteraction.findUnique({
       where: { id },
+    });
+
+    if (!interaction) {
+      throw new Error('Interaction not found');
+    }
+
+    // Use a transaction to ensure consistency
+    return prisma.$transaction(async (tx) => {
+      // Delete the interaction
+      const deletedInteraction = await tx.caseInteraction.delete({
+        where: { id },
+      });
+
+      // If this was the active action, clear the case's action fields
+      if (interaction.isActiveAction) {
+        await tx.case.update({
+          where: { id: interaction.caseId },
+          data: {
+            actionRequired: null,
+            actionRequiredBy: null,
+          },
+        });
+      }
+
+      return deletedInteraction;
     });
   },
 

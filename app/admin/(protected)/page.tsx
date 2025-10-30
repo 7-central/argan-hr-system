@@ -37,7 +37,7 @@ export default async function AdminDashboard() {
           <CardTitle className="text-primary">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link href="/admin/clients/new" className="w-full">
               <Button className="w-full">Add New Client</Button>
             </Link>
@@ -48,7 +48,7 @@ export default async function AdminDashboard() {
       </Card>
 
       {/* New Metrics Cards - Placeholders */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">Client and Revenue</CardTitle>

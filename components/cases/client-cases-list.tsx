@@ -67,13 +67,13 @@ interface AdminUser {
 export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }: ClientCasesListProps) {
   const router = useRouter();
   const [selectedCase, setSelectedCase] = useState<CaseData | null>(null);
-  const [sortColumn, setSortColumn] = useState<'caseId' | 'title' | 'escalatedBy' | 'assignedTo' | 'creationDate' | 'status' | 'actionRequired'>('creationDate');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortColumn, setSortColumn] = useState<'caseId' | 'title' | 'escalatedBy' | 'assignedTo' | 'creationDate' | 'status' | 'actionRequiredBy'>('status');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Filters state - stores selected values for each column
   const [filters, setFilters] = useState<Record<string, string[]>>({
     status: [],
-    actionRequired: [],
+    actionRequiredBy: [],
     assignedTo: [],
     escalatedBy: [],
   });
@@ -88,6 +88,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
   const [newCaseAssignedTo, setNewCaseAssignedTo] = useState<string | null>(null);
   const [newCaseStatus, setNewCaseStatus] = useState<'OPEN' | 'AWAITING' | 'CLOSED'>('OPEN');
   const [newCaseActionRequired, setNewCaseActionRequired] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'>('ARGAN');
+  const [newCaseActionRequiredText, setNewCaseActionRequiredText] = useState('');
   const [newCaseDescription, setNewCaseDescription] = useState('');
 
   /**
@@ -105,6 +106,24 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
 
     loadAdminUsers();
   }, []);
+
+  /**
+   * Sync selectedCase with updated cases array after refresh
+   * This ensures the Case Details Widget updates in real-time when dropdowns change
+   */
+  useEffect(() => {
+    if (selectedCase) {
+      // Find the updated version of the selected case in the refreshed cases array
+      const updatedCase = cases.find(c => c.id === selectedCase.id);
+      if (updatedCase && updatedCase !== selectedCase) {
+        // Only update if the object reference changed (i.e., data was refreshed)
+        setSelectedCase(updatedCase);
+      }
+    }
+    // Note: We intentionally don't include selectedCase in deps to avoid loops
+    // We only want to sync when cases array changes (after refresh)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases]);
 
   /**
    * Handle case click
@@ -207,6 +226,10 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
 
     // Then sort
     return filtered.sort((a, b) => {
+      // Define status priority order
+      const statusOrder = { 'OPEN': 1, 'AWAITING': 2, 'CLOSED': 3 };
+
+      // Primary sort
       let aVal: string | number = '';
       let bVal: string | number = '';
 
@@ -235,18 +258,44 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
           bVal = new Date(`${bYear}-${bMonth}-${bDay}`).getTime();
           break;
         case 'status':
-          aVal = a.status;
-          bVal = b.status;
+          // Use custom status order
+          aVal = statusOrder[a.status as keyof typeof statusOrder] || 999;
+          bVal = statusOrder[b.status as keyof typeof statusOrder] || 999;
           break;
-        case 'actionRequired':
-          aVal = a.actionRequired || '';
-          bVal = b.actionRequired || '';
+        case 'actionRequiredBy':
+          aVal = a.actionRequiredBy || '';
+          bVal = b.actionRequiredBy || '';
           break;
       }
 
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
+      // Apply primary sort
+      let comparison = 0;
+      if (aVal < bVal) comparison = sortDirection === 'asc' ? -1 : 1;
+      else if (aVal > bVal) comparison = sortDirection === 'asc' ? 1 : -1;
+
+      // If primary sort values are equal or we're sorting by status, apply secondary sort by creation date
+      if (comparison === 0 || sortColumn === 'status') {
+        // For status sort, always use creation date as secondary sort
+        if (sortColumn === 'status' && comparison !== 0) {
+          // Primary status sort is not equal, but we still apply it first
+          // Then within each status band, we sort by creation date
+        }
+
+        // Secondary sort: creation date (newest first)
+        const [aDay2, aMonth2, aYear2] = a.creationDate.split('/');
+        const [bDay2, bMonth2, bYear2] = b.creationDate.split('/');
+        const aDate = new Date(`${aYear2}-${aMonth2}-${aDay2}`).getTime();
+        const bDate = new Date(`${bYear2}-${bMonth2}-${bDay2}`).getTime();
+
+        // If primary comparison found a difference, return it; otherwise use secondary (creation date)
+        if (comparison !== 0) {
+          return comparison;
+        }
+        // Secondary sort: newest first (desc)
+        return aDate > bDate ? -1 : aDate < bDate ? 1 : 0;
+      }
+
+      return comparison;
     });
   }, [cases, searchTerm, filters, sortColumn, sortDirection]);
 
@@ -344,6 +393,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
       assignedTo: newCaseAssignedTo,
       status: newCaseStatus,
       actionRequiredBy: newCaseActionRequired,
+      actionRequired: newCaseActionRequiredText,
       description: newCaseDescription,
     });
 
@@ -356,6 +406,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
       setNewCaseAssignedTo(null);
       setNewCaseStatus('OPEN');
       setNewCaseActionRequired('ARGAN');
+      setNewCaseActionRequiredText('');
       setNewCaseDescription('');
       setIsNewCaseDialogOpen(false);
 
@@ -369,7 +420,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
     <>
       {/* Full Width Widget - Cases List */}
       <Card className="w-full border-0 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Cases</CardTitle>
           <Button
             size="sm"
@@ -380,33 +431,34 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
             Open New Case
           </Button>
         </CardHeader>
-        <CardContent className="pt-0 px-0">
-          <div className="max-h-[250px] overflow-y-auto relative">
-            <table className="w-full caption-bottom text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+        <CardContent>
+          {/* Scroll container - using the working pattern from minimal version */}
+          <div className="w-full overflow-auto" style={{ maxHeight: '300px' }}>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-left font-semibold border-b">
                     <button
-                      className="flex items-center text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                      className="flex items-center text-primary hover:text-primary/80 transition-colors"
                       onClick={() => handleSort('caseId')}
                     >
                       Case ID
                       {getSortIcon('caseId')}
                     </button>
                   </th>
-                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-left font-semibold border-b">
                     <button
-                      className="flex items-center text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                      className="flex items-center text-primary hover:text-primary/80 transition-colors"
                       onClick={() => handleSort('title')}
                     >
                       Case Title
                       {getSortIcon('title')}
                     </button>
                   </th>
-                  <th className="text-foreground h-10 px-2 text-center align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-center font-semibold border-b">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        className="flex items-center text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                        className="flex items-center text-primary hover:text-primary/80 transition-colors"
                         onClick={() => handleSort('escalatedBy')}
                       >
                         Escalated By
@@ -451,10 +503,10 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                       </Popover>
                     </div>
                   </th>
-                  <th className="text-foreground h-10 px-2 text-center align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-center font-semibold border-b">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        className="flex items-center text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                        className="flex items-center text-primary hover:text-primary/80 transition-colors"
                         onClick={() => handleSort('assignedTo')}
                       >
                         Assigned To
@@ -499,19 +551,19 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                       </Popover>
                     </div>
                   </th>
-                  <th className="text-foreground h-10 px-2 text-center align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-center font-semibold border-b">
                     <button
-                      className="flex items-center justify-center w-full text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                      className="flex items-center justify-center w-full text-primary hover:text-primary/80 transition-colors"
                       onClick={() => handleSort('creationDate')}
                     >
                       Creation Date
                       {getSortIcon('creationDate')}
                     </button>
                   </th>
-                  <th className="text-foreground h-10 px-2 text-center align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-center font-semibold border-b">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        className="flex items-center text-primary text-base font-semibold hover:text-primary/80 transition-colors"
+                        className="flex items-center text-primary hover:text-primary/80 transition-colors"
                         onClick={() => handleSort('status')}
                       >
                         Case Status
@@ -556,43 +608,43 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                       </Popover>
                     </div>
                   </th>
-                  <th className="text-foreground h-10 px-2 text-center align-middle font-medium whitespace-nowrap sticky top-0 z-10 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                  <th className="sticky top-0 bg-muted/90 backdrop-blur-sm p-3 text-center font-semibold border-b">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        className="flex items-center text-primary text-base font-semibold hover:text-primary/80 transition-colors"
-                        onClick={() => handleSort('actionRequired')}
+                        className="flex items-center text-primary hover:text-primary/80 transition-colors"
+                        onClick={() => handleSort('actionRequiredBy')}
                       >
                         Action Required By
-                        {getSortIcon('actionRequired')}
+                        {getSortIcon('actionRequiredBy')}
                       </button>
                       <Popover>
                         <PopoverTrigger asChild>
                           <button className="p-1 hover:bg-muted rounded">
-                            <Filter className={`h-3.5 w-3.5 ${filters.actionRequired?.length > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <Filter className={`h-3.5 w-3.5 ${filters.actionRequiredBy?.length > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-48" align="center">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium">Filter By</span>
-                              {filters.actionRequired?.length > 0 && (
+                              {filters.actionRequiredBy?.length > 0 && (
                                 <button
                                   className="text-xs text-muted-foreground hover:text-foreground"
-                                  onClick={() => clearFilter('actionRequired')}
+                                  onClick={() => clearFilter('actionRequiredBy')}
                                 >
                                   Clear
                                 </button>
                               )}
                             </div>
-                            {getUniqueValues('actionRequired').map((value) => (
+                            {getUniqueValues('actionRequiredBy').map((value) => (
                               <div key={value} className="flex items-center space-x-2">
                                 <Checkbox
-                                  id={`actionRequired-${value}`}
-                                  checked={filters.actionRequired?.includes(String(value))}
-                                  onCheckedChange={() => toggleFilter('actionRequired', String(value))}
+                                  id={`actionRequiredBy-${value}`}
+                                  checked={filters.actionRequiredBy?.includes(String(value))}
+                                  onCheckedChange={() => toggleFilter('actionRequiredBy', String(value))}
                                 />
                                 <label
-                                  htmlFor={`actionRequired-${value}`}
+                                  htmlFor={`actionRequiredBy-${value}`}
                                   className="text-sm cursor-pointer"
                                 >
                                   {value}
@@ -610,28 +662,28 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                 {filteredAndSortedCases.map((caseItem) => (
                   <tr
                     key={caseItem.id}
-                    className={`border-b cursor-pointer hover:bg-muted/50 transition-all duration-200 ${
+                    className={`border-b cursor-pointer hover:bg-muted/30 ${
                       selectedCase?.id === caseItem.id ? 'bg-muted' : ''
                     }`}
                     onClick={() => handleCaseClick(caseItem)}
                   >
                     {/* Case ID */}
-                    <td className="p-2 align-middle whitespace-nowrap font-medium text-left">
+                    <td className="p-3 font-medium">
                       {caseItem.caseId}
                     </td>
 
                     {/* Case Title */}
-                    <td className="p-2 align-middle whitespace-nowrap text-left">
+                    <td className="p-3">
                       {caseItem.title}
                     </td>
 
                     {/* Escalated By */}
-                    <td className="p-2 align-middle whitespace-nowrap text-center text-sm">
+                    <td className="p-3 text-center">
                       {caseItem.escalatedBy}
                     </td>
 
                     {/* Assigned To */}
-                    <td className="p-2 align-middle whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="text-sm font-medium hover:underline cursor-pointer">
@@ -652,12 +704,12 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                     </td>
 
                     {/* Creation Date */}
-                    <td className="text-center text-sm text-muted-foreground">
+                    <td className="p-3 text-center text-muted-foreground">
                       {caseItem.creationDate}
                     </td>
 
                     {/* Case Status */}
-                    <td className="p-2 align-middle whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-2">
                         <div className={`h-2.5 w-2.5 rounded-full ${getStatusDotColor(caseItem.status)}`} />
                         <DropdownMenu>
@@ -682,12 +734,12 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
                     </td>
 
                     {/* Action Required By */}
-                    <td className="p-2 align-middle whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className={`inline-flex items-center justify-center px-3 py-1 rounded text-sm font-medium cursor-pointer transition-colors w-[110px] ${getActionRequiredColor(caseItem.actionRequired)}`}>
-                              {caseItem.actionRequired || '-'}
+                            <button className={`inline-flex items-center justify-center px-3 py-1 rounded text-sm font-medium cursor-pointer transition-colors w-[110px] ${getActionRequiredColor(caseItem.actionRequiredBy)}`}>
+                              {caseItem.actionRequiredBy || '-'}
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="center">
@@ -720,20 +772,23 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
 
       {/* Case Details and Interactions - Only show when a case is selected */}
       {selectedCase && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
           {/* Left: Case Details Widget */}
           <CaseDetailsWidget
             caseData={{
+              id: selectedCase.id,
               caseId: selectedCase.caseId,
               title: selectedCase.title,
               creationDate: selectedCase.creationDate,
               status: selectedCase.status,
+              actionRequiredBy: selectedCase.actionRequiredBy,
               actionRequired: selectedCase.actionRequired,
               escalatedBy: selectedCase.escalatedBy,
               assignedTo: selectedCase.assignedTo,
               description: selectedCase.description || null,
             }}
             clientId={clientId}
+            onCaseDeleted={() => setSelectedCase(null)}
           />
 
           {/* Right: Case Interactions Widget */}
@@ -778,7 +833,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
             </div>
 
             {/* Assigned To and Action Required By - Side by side */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="assigned-to">Assigned To</Label>
                 <Select value={newCaseAssignedTo || 'none'} onValueChange={(value) => setNewCaseAssignedTo(value === 'none' ? null : value)}>
@@ -812,11 +867,22 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
               </div>
             </div>
 
+            {/* Action Required Text */}
+            <div className="space-y-2">
+              <Label htmlFor="action-required-text">Action Required</Label>
+              <Input
+                id="action-required-text"
+                placeholder="What action is needed..."
+                value={newCaseActionRequiredText}
+                onChange={(e) => setNewCaseActionRequiredText(e.target.value)}
+              />
+            </div>
+
             {/* Case Status */}
             <div className="space-y-2">
               <Label htmlFor="case-status">Case Status</Label>
               <Select value={newCaseStatus} onValueChange={(value) => setNewCaseStatus(value as 'OPEN' | 'AWAITING' | 'CLOSED')}>
-                <SelectTrigger className="w-[calc(50%-0.5rem)]">
+                <SelectTrigger className="w-full sm:w-[calc(50%-0.5rem)]">
                   <SelectValue placeholder="Select case status" />
                 </SelectTrigger>
                 <SelectContent>

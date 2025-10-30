@@ -1,0 +1,279 @@
+/**
+ * Layout Primitives
+ *
+ * Reusable layout patterns based on Every Layout principles.
+ * These are composition-based, single-purpose layout components.
+ *
+ * Mobile-first: All primitives work on mobile and enhance for larger screens.
+ */
+
+@layer layout {
+  /* ===== Stack: Vertical spacing between children ===== */
+  /* Usage: <div class="stack" data-gap="4"> */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .stack > * {
+    margin-block: 0;
+  }
+
+  .stack > * + * {
+    margin-block-start: var(--stack-gap, var(--space-4));
+  }
+
+  /* Gap variants */
+  .stack[data-gap="1"] { --stack-gap: var(--space-1); }
+  .stack[data-gap="2"] { --stack-gap: var(--space-2); }
+  .stack[data-gap="3"] { --stack-gap: var(--space-3); }
+  .stack[data-gap="4"] { --stack-gap: var(--space-4); }
+  .stack[data-gap="5"] { --stack-gap: var(--space-5); }
+  .stack[data-gap="6"] { --stack-gap: var(--space-6); }
+  .stack[data-gap="8"] { --stack-gap: var(--space-8); }
+
+  /* ===== Cluster: Horizontal wrapping layout ===== */
+  /* Usage: <div class="cluster" data-gap="2"> */
+  .cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cluster-gap, var(--space-2));
+    align-items: center;
+  }
+
+  /* Gap variants */
+  .cluster[data-gap="1"] { --cluster-gap: var(--space-1); }
+  .cluster[data-gap="2"] { --cluster-gap: var(--space-2); }
+  .cluster[data-gap="3"] { --cluster-gap: var(--space-3); }
+  .cluster[data-gap="4"] { --cluster-gap: var(--space-4); }
+
+  /* Alignment variants */
+  .cluster[data-align="start"] { align-items: flex-start; }
+  .cluster[data-align="center"] { align-items: center; }
+  .cluster[data-align="end"] { align-items: flex-end; }
+  .cluster[data-align="stretch"] { align-items: stretch; }
+
+  .cluster[data-justify="start"] { justify-content: flex-start; }
+  .cluster[data-justify="center"] { justify-content: center; }
+  .cluster[data-justify="end"] { justify-content: flex-end; }
+  .cluster[data-justify="between"] { justify-content: space-between; }
+
+  /* ===== Auto Grid: Responsive grid with auto-fit columns ===== */
+  /* Usage: <div class="auto-grid" data-min="18rem"> */
+  .auto-grid {
+    display: grid;
+    gap: var(--grid-gap, var(--space-4));
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(var(--grid-min, 18rem), 1fr)
+    );
+    align-content: start;
+  }
+
+  /* Min-width variants */
+  .auto-grid[data-min="12rem"] { --grid-min: 12rem; }
+  .auto-grid[data-min="16rem"] { --grid-min: 16rem; }
+  .auto-grid[data-min="18rem"] { --grid-min: 18rem; }
+  .auto-grid[data-min="20rem"] { --grid-min: 20rem; }
+  .auto-grid[data-min="24rem"] { --grid-min: 24rem; }
+  .auto-grid[data-min="28rem"] { --grid-min: 28rem; }
+
+  /* Gap variants */
+  .auto-grid[data-gap="2"] { --grid-gap: var(--space-2); }
+  .auto-grid[data-gap="3"] { --grid-gap: var(--space-3); }
+  .auto-grid[data-gap="4"] { --grid-gap: var(--space-4); }
+  .auto-grid[data-gap="6"] { --grid-gap: var(--space-6); }
+
+  /* ===== Sidebar Layout: Content with sidebar ===== */
+  /* Usage: <div class="sidebar-layout" data-side-width="16rem"> */
+  .sidebar-layout {
+    display: grid;
+    gap: var(--sidebar-gap, var(--space-4));
+    grid-template-columns: minmax(
+      var(--sidebar-min, 12rem),
+      var(--sidebar-width, 20rem)
+    ) 1fr;
+  }
+
+  /* On mobile, stack vertically */
+  @media (max-width: 48rem) {
+    .sidebar-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Side width variants */
+  .sidebar-layout[data-side-width="12rem"] { --sidebar-width: 12rem; }
+  .sidebar-layout[data-side-width="16rem"] { --sidebar-width: 16rem; }
+  .sidebar-layout[data-side-width="20rem"] { --sidebar-width: 20rem; }
+  .sidebar-layout[data-side-width="24rem"] { --sidebar-width: 24rem; }
+
+  /* ===== Switcher: Horizontal until threshold, then stack ===== */
+  /* Usage: <div class="switcher" data-threshold="30rem"> */
+  .switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--switcher-gap, var(--space-4));
+  }
+
+  .switcher > * {
+    flex-grow: 1;
+    flex-basis: calc((var(--switcher-threshold, 30rem) - 100%) * 999);
+  }
+
+  /* Threshold variants */
+  .switcher[data-threshold="20rem"] { --switcher-threshold: 20rem; }
+  .switcher[data-threshold="30rem"] { --switcher-threshold: 30rem; }
+  .switcher[data-threshold="40rem"] { --switcher-threshold: 40rem; }
+
+  /* ===== Cover: Vertically center content ===== */
+  /* Usage: <div class="cover"> */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    min-block-size: var(--cover-height, 100vh);
+    padding: var(--cover-padding, var(--space-4));
+  }
+
+  .cover > * {
+    margin-block: var(--cover-gap, var(--space-4));
+  }
+
+  .cover > :first-child:not(.cover__centered) {
+    margin-block-start: 0;
+  }
+
+  .cover > :last-child:not(.cover__centered) {
+    margin-block-end: 0;
+  }
+
+  .cover > .cover__centered {
+    margin-block: auto;
+  }
+
+  /* ===== Box: Generic container with consistent spacing ===== */
+  /* Usage: <div class="box" data-padding="4"> */
+  .box {
+    padding: var(--box-padding, var(--space-4));
+    border: var(--box-border, 1px solid hsl(var(--border)));
+    background: var(--box-bg, hsl(var(--background)));
+    border-radius: var(--box-radius, var(--radius-3));
+  }
+
+  /* Padding variants */
+  .box[data-padding="0"] { --box-padding: var(--space-0); }
+  .box[data-padding="2"] { --box-padding: var(--space-2); }
+  .box[data-padding="3"] { --box-padding: var(--space-3); }
+  .box[data-padding="4"] { --box-padding: var(--space-4); }
+  .box[data-padding="6"] { --box-padding: var(--space-6); }
+  .box[data-padding="8"] { --box-padding: var(--space-8); }
+
+  /* Variants */
+  .box[data-variant="ghost"] {
+    --box-border: none;
+    --box-bg: transparent;
+  }
+
+  .box[data-variant="muted"] {
+    --box-bg: hsl(var(--muted));
+  }
+
+  /* ===== Center: Horizontal centering with max-width ===== */
+  /* Usage: <div class="center" data-max="60rem"> */
+  .center {
+    box-sizing: content-box;
+    margin-inline: auto;
+    max-inline-size: var(--center-max, 60rem);
+    padding-inline: var(--center-padding, var(--space-4));
+  }
+
+  /* Max-width variants */
+  .center[data-max="40rem"] { --center-max: 40rem; }
+  .center[data-max="48rem"] { --center-max: 48rem; }
+  .center[data-max="60rem"] { --center-max: 60rem; }
+  .center[data-max="72rem"] { --center-max: 72rem; }
+  .center[data-max="80rem"] { --center-max: 80rem; }
+
+  /* ===== Responsive Container (with @container queries) ===== */
+  /* Usage: <div class="responsive-container"> */
+  .responsive-container {
+    container-type: inline-size;
+  }
+
+  /* Named containers for specific contexts */
+  .responsive-container[data-name="card"] {
+    container-name: card;
+  }
+
+  .responsive-container[data-name="widget"] {
+    container-name: widget;
+  }
+
+  .responsive-container[data-name="table"] {
+    container-name: table;
+  }
+}
+
+/* ===== Utility Classes ===== */
+@layer utilities {
+  /* Screen reader only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Visually hidden but still accessible */
+  .visually-hidden {
+    position: absolute !important;
+    overflow: hidden !important;
+    clip: rect(1px, 1px, 1px, 1px) !important;
+    width: 1px !important;
+    height: 1px !important;
+    word-wrap: normal !important;
+  }
+
+  /* Prevent layout shift */
+  .no-layout-shift {
+    content-visibility: auto;
+  }
+
+  /* Smooth scroll */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+
+  /* Flow content (prose) */
+  .flow > * + * {
+    margin-block-start: var(--flow-space, 1em);
+  }
+
+  /* Truncate text */
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Line clamp */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

@@ -16,7 +16,7 @@ import type {
   UpdateCaseInput,
   CreateInteractionInput,
   CreateFileInput,
-} from '@/lib/services/business/case.service';
+} from '@/lib/types/case';
 
 /**
  * Get all active admin users
@@ -177,6 +177,7 @@ export const updateCase = withAuth(
       title: string;
       creationDate: string;
       status: string;
+      actionRequiredBy: string | null;
       actionRequired: string | null;
       escalatedBy: string;
       assignedTo: string | null;
@@ -196,7 +197,8 @@ export const updateCase = withAuth(
         title: updatedCase.title,
         creationDate: updatedCase.createdAt.toLocaleDateString('en-GB'),
         status: updatedCase.status,
-        actionRequired: updatedCase.actionRequiredBy,
+        actionRequiredBy: updatedCase.actionRequiredBy,
+        actionRequired: updatedCase.actionRequired,
         escalatedBy: updatedCase.escalatedBy,
         assignedTo: updatedCase.assignedTo,
         description: updatedCase.description,
@@ -326,6 +328,9 @@ export const createInteraction = withAuth(
       party2Type: string;
       content: string;
       fileCount: number;
+      isActiveAction: boolean;
+      actionRequired: string | null;
+      actionRequiredBy: string | null;
     };
     error?: string;
   }> => {
@@ -342,6 +347,9 @@ export const createInteraction = withAuth(
         party2Type: interaction.party2Type,
         content: interaction.content,
         fileCount: interaction._count.files,
+        isActiveAction: interaction.isActiveAction,
+        actionRequired: interaction.actionRequired,
+        actionRequiredBy: interaction.actionRequiredBy,
       };
 
       // Get case to find clientId for revalidation
@@ -358,6 +366,74 @@ export const createInteraction = withAuth(
       return {
         success: false,
         error: 'Failed to create interaction',
+      };
+    }
+  }
+);
+
+/**
+ * Update an interaction
+ */
+export const updateInteraction = withAuth(
+  async (
+    _session,
+    interactionId: number,
+    input: {
+      party1Name?: string;
+      party1Type?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE';
+      party2Name?: string;
+      party2Type?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE';
+      content?: string;
+      actionRequired?: string | null;
+      actionRequiredBy?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+    }
+  ): Promise<{
+    success: boolean;
+    data?: {
+      id: number;
+      date: string;
+      party1Name: string;
+      party1Type: string;
+      party2Name: string;
+      party2Type: string;
+      content: string;
+      fileCount: number;
+      isActiveAction: boolean;
+      actionRequired: string | null;
+      actionRequiredBy: string | null;
+    };
+    error?: string;
+  }> => {
+    try {
+      // Update the interaction using the case service
+      const updatedInteraction = await caseService.updateInteraction(interactionId, input);
+
+      // Transform to frontend format
+      const transformedInteraction = {
+        id: updatedInteraction.id,
+        date: updatedInteraction.createdAt.toLocaleDateString('en-GB'),
+        party1Name: updatedInteraction.party1Name,
+        party1Type: updatedInteraction.party1Type,
+        party2Name: updatedInteraction.party2Name,
+        party2Type: updatedInteraction.party2Type,
+        content: updatedInteraction.content,
+        fileCount: updatedInteraction._count.files,
+        isActiveAction: updatedInteraction.isActiveAction,
+        actionRequired: updatedInteraction.actionRequired,
+        actionRequiredBy: updatedInteraction.actionRequiredBy,
+      };
+
+      // Revalidate the path using the clientId from the related case
+      revalidatePath(`/admin/clients/${updatedInteraction.case.clientId}/cases`);
+
+      return { success: true, data: transformedInteraction };
+    } catch (error) {
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      }
+      return {
+        success: false,
+        error: 'Failed to update interaction',
       };
     }
   }
