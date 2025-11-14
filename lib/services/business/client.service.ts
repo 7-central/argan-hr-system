@@ -306,7 +306,48 @@ export class ClientService {
       throw new FieldValidationError(errors);
     }
 
-    // Create client and contacts in a transaction
+    // Retry logic for handling contract number collisions
+    const maxRetries = 3;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Create client and contacts in a transaction
+        const client = await this.createClientTransaction(data);
+        return client;
+      } catch (error) {
+        // Check if it's a unique constraint error on contract_number
+        if (
+          error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          error.code === 'P2002' &&
+          'meta' in error &&
+          error.meta &&
+          typeof error.meta === 'object' &&
+          'target' in error.meta &&
+          Array.isArray(error.meta.target) &&
+          error.meta.target.includes('contract_number')
+        ) {
+          // Wait a bit before retrying (exponential backoff)
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
+          continue;
+        }
+        // If it's not a contract number collision, throw immediately
+        throw error;
+      }
+    }
+
+    // All retries exhausted
+    throw new Error(
+      'Failed to create client after multiple attempts due to contract number collision. Please try again.'
+    );
+  }
+
+  /**
+   * Internal method to create client in a transaction
+   * Separated for retry logic
+   */
+  private async createClientTransaction(data: CreateClientDto): Promise<Client> {
     const client = await this.db.$transaction(async (tx) => {
       // Conditional payment method onboarding fields
       // Set to null (N/A) for irrelevant payment methods, false (pending) for relevant ones
@@ -415,10 +456,43 @@ export class ClientService {
       // Generate contract number: CON-{batch}-{record}
       // Batch 001 can hold 999 contracts (CON-001-001 to CON-001-999)
       // Then batch 002 starts (CON-002-001 to CON-002-999), etc.
-      const contractCount = await tx.contract.count();
-      const batch = Math.floor(contractCount / 999) + 1; // Start at batch 001
-      const record = (contractCount % 999) + 1; // Record within batch (1-999)
-      const contractNumber = `CON-${String(batch).padStart(3, '0')}-${String(record).padStart(3, '0')}`;
+
+      // Use atomic query to get the highest contract number and increment
+      // This prevents race conditions when multiple clients are created simultaneously
+      const lastContract = await tx.contract.findFirst({
+        orderBy: {
+          contractNumber: 'desc',
+        },
+        select: {
+          contractNumber: true,
+        },
+      });
+
+      let contractNumber: string;
+      if (!lastContract) {
+        // First contract ever
+        contractNumber = 'CON-001-001';
+      } else {
+        // Parse the last contract number (format: CON-{batch}-{record})
+        const match = lastContract.contractNumber.match(/^CON-(\d{3})-(\d{3})$/);
+        if (!match) {
+          // Fallback if format is unexpected
+          contractNumber = `CON-001-${String(Date.now() % 1000).padStart(3, '0')}`;
+        } else {
+          let batch = parseInt(match[1], 10);
+          let record = parseInt(match[2], 10);
+
+          // Increment record, roll over to next batch if needed
+          record += 1;
+          if (record > 999) {
+            batch += 1;
+            record = 1;
+          }
+
+          contractNumber = `CON-${String(batch).padStart(3, '0')}-${String(record).padStart(3, '0')}`;
+        }
+      }
+
       const version = 1; // First contract is always version 1
 
       await tx.contract.create({
