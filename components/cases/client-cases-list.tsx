@@ -52,6 +52,7 @@ interface ClientCasesListProps {
   clientName: string;
   cases: CaseData[];
   searchTerm?: string;
+  autoExpandCaseId?: number;
 }
 
 interface AdminUser {
@@ -64,7 +65,7 @@ interface AdminUser {
  * Client Cases List Component
  * Displays list of cases with action buttons
  */
-export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }: ClientCasesListProps) {
+export function ClientCasesList({ clientId, clientName, cases, searchTerm = '', autoExpandCaseId }: ClientCasesListProps) {
   const router = useRouter();
   const [selectedCase, setSelectedCase] = useState<CaseData | null>(null);
   const [sortColumn, setSortColumn] = useState<'caseId' | 'title' | 'escalatedBy' | 'assignedTo' | 'creationDate' | 'status' | 'actionRequiredBy'>('status');
@@ -124,6 +125,25 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
     // We only want to sync when cases array changes (after refresh)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cases]);
+
+  /**
+   * Auto-expand case when autoExpandCaseId is provided (from URL parameter)
+   */
+  useEffect(() => {
+    if (autoExpandCaseId && cases.length > 0) {
+      const caseToExpand = cases.find(c => c.id === autoExpandCaseId);
+      if (caseToExpand) {
+        setSelectedCase(caseToExpand);
+        // Scroll to the case details after a short delay to ensure rendering is complete
+        setTimeout(() => {
+          const element = document.getElementById(`case-details-${autoExpandCaseId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    }
+  }, [autoExpandCaseId, cases]);
 
   /**
    * Handle case click
@@ -772,7 +792,7 @@ export function ClientCasesList({ clientId, clientName, cases, searchTerm = '' }
 
       {/* Case Details and Interactions - Only show when a case is selected */}
       {selectedCase && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div id={`case-details-${selectedCase.id}`} className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
           {/* Left: Case Details Widget */}
           <CaseDetailsWidget
             caseData={{

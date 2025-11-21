@@ -27,13 +27,14 @@ interface CasesPageContentProps {
   clientName: string;
   cases: CaseData[];
   showSearch?: boolean;
+  selectedCaseId?: number;
 }
 
 /**
  * Cases Page Content Component
  * Manages the display and interaction of client cases
  */
-export function CasesPageContent({ clientId, clientName, cases, showSearch = true }: CasesPageContentProps) {
+export function CasesPageContent({ clientId, clientName, cases, showSearch = true, selectedCaseId }: CasesPageContentProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -51,7 +52,13 @@ export function CasesPageContent({ clientId, clientName, cases, showSearch = tru
       )}
 
       {/* Client Cases List */}
-      <ClientCasesList clientId={clientId} clientName={clientName} cases={cases} searchTerm={searchTerm} />
+      <ClientCasesList
+        clientId={clientId}
+        clientName={clientName}
+        cases={cases}
+        searchTerm={searchTerm}
+        autoExpandCaseId={selectedCaseId}
+      />
     </div>
   );
 }

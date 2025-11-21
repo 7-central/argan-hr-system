@@ -21,14 +21,18 @@ interface ClientCasesPageProps {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    case?: string;
+  }>;
 }
 
 /**
  * Client Cases Page
  * Manages cases for a specific client with nested organization
  */
-export default async function ClientCasesPage({ params }: ClientCasesPageProps) {
+export default async function ClientCasesPage({ params, searchParams }: ClientCasesPageProps) {
   const { id: idString } = await params;
+  const { case: caseIdParam } = await searchParams;
 
   // Convert string ID to number
   const id = parseInt(idString, 10);
@@ -109,7 +113,12 @@ export default async function ClientCasesPage({ params }: ClientCasesPageProps) 
       </div>
 
       {/* Cases Content */}
-      <CasesPageContent clientId={id} clientName={client.companyName} cases={cases} />
+      <CasesPageContent
+        clientId={id}
+        clientName={client.companyName}
+        cases={cases}
+        selectedCaseId={caseIdParam ? parseInt(caseIdParam, 10) : undefined}
+      />
     </div>
   );
 }

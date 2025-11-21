@@ -105,7 +105,7 @@ export function ActionsWithDeadlinesWidget({ casesWithDates }: ActionsWithDeadli
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Link
-                        href={`/admin/clients/${item.clientId}/cases`}
+                        href={`/admin/clients/${item.clientId}/cases?case=${item.caseNumericId}`}
                         className="font-medium text-sm hover:underline truncate"
                       >
                         {item.caseId} - {item.caseTitle}
@@ -140,7 +140,7 @@ export function ActionsWithDeadlinesWidget({ casesWithDates }: ActionsWithDeadli
                     >
                       {formatDate(item.actionRequiredByDate)}
                     </div>
-                    <Link href={`/admin/clients/${item.clientId}/cases`}>
+                    <Link href={`/admin/clients/${item.clientId}/cases?case=${item.caseNumericId}`}>
                       <Button size="sm" variant="outline">
                         View
                       </Button>
