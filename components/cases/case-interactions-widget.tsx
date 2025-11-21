@@ -49,6 +49,7 @@ interface Interaction {
   isActiveAction?: boolean;
   actionRequired?: string | null;
   actionRequiredBy?: string | null;
+  actionRequiredByDate?: string | null;
 }
 
 interface CaseInteractionsWidgetProps {
@@ -86,20 +87,21 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
   const [editingInteraction, setEditingInteraction] = useState<Interaction | null>(null);
 
   // First party state
-  const [party1Type, setParty1Type] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'>('ARGAN');
+  const [party1Type, setParty1Type] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY'>('ARGAN');
   const [party1ArganUser, setParty1ArganUser] = useState('');
   const [party1Contractor, setParty1Contractor] = useState('');
   const [party1FreeText, setParty1FreeText] = useState('');
 
   // Second party state
-  const [party2Type, setParty2Type] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE'>('CLIENT');
+  const [party2Type, setParty2Type] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY'>('CLIENT');
   const [party2ArganUser, setParty2ArganUser] = useState('');
   const [party2Contractor, setParty2Contractor] = useState('');
   const [party2FreeText, setParty2FreeText] = useState('');
 
   // Action required state
   const [actionRequired, setActionRequired] = useState('');
-  const [actionRequiredBy, setActionRequiredBy] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | ''>('');
+  const [actionRequiredBy, setActionRequiredBy] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY' | ''>('');
+  const [actionRequiredByDate, setActionRequiredByDate] = useState<string>('');
 
   /**
    * Load admin users on mount
@@ -170,6 +172,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         content: newInteractionText.trim(),
         actionRequired: actionRequired.trim() || null,
         actionRequiredBy: actionRequiredBy || null,
+        actionRequiredByDate: actionRequiredByDate || null,
       });
 
       if (result.success && result.data) {
@@ -189,6 +192,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         setParty2Type('CLIENT');
         setActionRequired('');
         setActionRequiredBy('');
+        setActionRequiredByDate('');
         setIsDialogOpen(false);
       } else {
         toast.error(result.error || 'Failed to add interaction');
@@ -234,10 +238,11 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
     // Populate form fields with interaction data
     setNewInteractionText(interaction.content);
     setActionRequired(interaction.actionRequired || '');
-    setActionRequiredBy((interaction.actionRequiredBy as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE') || '');
+    setActionRequiredBy((interaction.actionRequiredBy as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY') || '');
+    setActionRequiredByDate(interaction.actionRequiredByDate || '');
 
     // Set party 1 data
-    setParty1Type(interaction.party1Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE');
+    setParty1Type(interaction.party1Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY');
     if (interaction.party1Type === 'ARGAN') {
       setParty1ArganUser(interaction.party1Name);
     } else if (interaction.party1Type === 'CONTRACTOR') {
@@ -247,7 +252,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
     }
 
     // Set party 2 data
-    setParty2Type(interaction.party2Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE');
+    setParty2Type(interaction.party2Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY');
     if (interaction.party2Type === 'ARGAN') {
       setParty2ArganUser(interaction.party2Name);
     } else if (interaction.party2Type === 'CONTRACTOR') {
@@ -294,6 +299,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         content: newInteractionText.trim(),
         actionRequired: actionRequired.trim() || null,
         actionRequiredBy: actionRequiredBy || null,
+        actionRequiredByDate: actionRequiredByDate || null,
       });
 
       if (result.success && result.data) {
@@ -315,6 +321,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         setParty2Type('CLIENT');
         setActionRequired('');
         setActionRequiredBy('');
+        setActionRequiredByDate('');
         setEditingInteraction(null);
         setIsDialogOpen(false);
       } else {
@@ -385,6 +392,8 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         return 'bg-blue-100 text-blue-700';
       case 'EMPLOYEE':
         return 'bg-yellow-100 text-yellow-700';
+      case 'THIRD_PARTY':
+        return 'bg-purple-100 text-purple-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -675,7 +684,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
 
               {/* First Party */}
               <div className="grid grid-cols-2 gap-4">
-                <Select value={party1Type} onValueChange={(value) => setParty1Type(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE')}>
+                <Select value={party1Type} onValueChange={(value) => setParty1Type(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY')}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select party type" />
                   </SelectTrigger>
@@ -684,6 +693,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                     <SelectItem value="CLIENT">Client</SelectItem>
                     <SelectItem value="CONTRACTOR">Contractor</SelectItem>
                     <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="THIRD_PARTY">Third Party</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -718,9 +728,15 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                   </Select>
                 )}
 
-                {(party1Type === 'CLIENT' || party1Type === 'EMPLOYEE') && (
+                {(party1Type === 'CLIENT' || party1Type === 'EMPLOYEE' || party1Type === 'THIRD_PARTY') && (
                   <Input
-                    placeholder={party1Type === 'CLIENT' ? 'Enter client contact name' : 'Enter employee name'}
+                    placeholder={
+                      party1Type === 'CLIENT'
+                        ? 'Enter client contact name'
+                        : party1Type === 'EMPLOYEE'
+                        ? 'Enter employee name'
+                        : 'Enter third party name'
+                    }
                     value={party1FreeText}
                     onChange={(e) => setParty1FreeText(e.target.value)}
                     className="w-full"
@@ -735,7 +751,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
 
               {/* Second Party */}
               <div className="grid grid-cols-2 gap-4">
-                <Select value={party2Type} onValueChange={(value) => setParty2Type(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE')}>
+                <Select value={party2Type} onValueChange={(value) => setParty2Type(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY')}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select party type" />
                   </SelectTrigger>
@@ -744,6 +760,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                     <SelectItem value="CLIENT">Client</SelectItem>
                     <SelectItem value="CONTRACTOR">Contractor</SelectItem>
                     <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="THIRD_PARTY">Third Party</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -778,9 +795,15 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                   </Select>
                 )}
 
-                {(party2Type === 'CLIENT' || party2Type === 'EMPLOYEE') && (
+                {(party2Type === 'CLIENT' || party2Type === 'EMPLOYEE' || party2Type === 'THIRD_PARTY') && (
                   <Input
-                    placeholder={party2Type === 'CLIENT' ? 'Enter client contact name' : 'Enter employee name'}
+                    placeholder={
+                      party2Type === 'CLIENT'
+                        ? 'Enter client contact name'
+                        : party2Type === 'EMPLOYEE'
+                        ? 'Enter employee name'
+                        : 'Enter third party name'
+                    }
                     value={party2FreeText}
                     onChange={(e) => setParty2FreeText(e.target.value)}
                     className="w-full"
@@ -815,7 +838,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
               {/* Action Required By */}
               <div className="space-y-2">
                 <Label htmlFor="action-required-by" className="text-sm">Action Required By</Label>
-                <Select value={actionRequiredBy} onValueChange={(value) => setActionRequiredBy(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | '')}>
+                <Select value={actionRequiredBy} onValueChange={(value) => setActionRequiredBy(value as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY' | '')}>
                   <SelectTrigger id="action-required-by" className="w-full">
                     <SelectValue placeholder="Select who needs to take action" />
                   </SelectTrigger>
@@ -825,6 +848,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                     <SelectItem value="CLIENT">Client</SelectItem>
                     <SelectItem value="CONTRACTOR">Contractor</SelectItem>
                     <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="THIRD_PARTY">Third Party</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -837,6 +861,18 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                   placeholder="Describe the action that needs to be taken..."
                   value={actionRequired}
                   onChange={(e) => setActionRequired(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Action Required By Date */}
+              <div className="space-y-2">
+                <Label htmlFor="action-required-by-date" className="text-sm">Action Required By Date</Label>
+                <Input
+                  id="action-required-by-date"
+                  type="date"
+                  value={actionRequiredByDate}
+                  onChange={(e) => setActionRequiredByDate(e.target.value)}
                   className="w-full"
                 />
               </div>
@@ -865,11 +901,11 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
                 // Party 1 validation
                 (party1Type === 'ARGAN' && !party1ArganUser) ||
                 (party1Type === 'CONTRACTOR' && !party1Contractor) ||
-                ((party1Type === 'CLIENT' || party1Type === 'EMPLOYEE') && !party1FreeText.trim()) ||
+                ((party1Type === 'CLIENT' || party1Type === 'EMPLOYEE' || party1Type === 'THIRD_PARTY') && !party1FreeText.trim()) ||
                 // Party 2 validation
                 (party2Type === 'ARGAN' && !party2ArganUser) ||
                 (party2Type === 'CONTRACTOR' && !party2Contractor) ||
-                ((party2Type === 'CLIENT' || party2Type === 'EMPLOYEE') && !party2FreeText.trim())
+                ((party2Type === 'CLIENT' || party2Type === 'EMPLOYEE' || party2Type === 'THIRD_PARTY') && !party2FreeText.trim())
               }
             >
               {editingInteraction ? 'Save Changes' : 'Add Interaction'}

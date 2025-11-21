@@ -36,7 +36,7 @@ interface CaseDetailsWidgetProps {
     title: string;
     creationDate: string;
     status: string;
-    actionRequiredBy: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+    actionRequiredBy: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY' | null;
     actionRequired: string | null;
     escalatedBy: string;
     assignedTo: string | null;
@@ -115,6 +115,8 @@ export function CaseDetailsWidget({ caseData, clientId, onCaseDeleted }: CaseDet
         return 'bg-blue-100 text-blue-700';
       case 'EMPLOYEE':
         return 'bg-yellow-100 text-yellow-700';
+      case 'THIRD_PARTY':
+        return 'bg-purple-100 text-purple-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -343,6 +345,11 @@ export function CaseDetailsWidget({ caseData, clientId, onCaseDeleted }: CaseDet
                 <SelectItem value="EMPLOYEE">
                   <span className="inline-flex items-center justify-center px-3 py-1 rounded text-xs font-medium w-[100px] bg-yellow-100 text-yellow-700">
                     EMPLOYEE
+                  </span>
+                </SelectItem>
+                <SelectItem value="THIRD_PARTY">
+                  <span className="inline-flex items-center justify-center px-3 py-1 rounded text-xs font-medium w-[100px] bg-purple-100 text-purple-700">
+                    THIRD_PARTY
                   </span>
                 </SelectItem>
               </SelectContent>

@@ -13,7 +13,7 @@ export interface CaseData {
   title: string;
   creationDate: string;
   status: 'OPEN' | 'AWAITING' | 'CLOSED';
-  actionRequiredBy: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+  actionRequiredBy: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY' | null;
   actionRequired: string | null;
   escalatedBy: string;
   assignedTo: string | null;

@@ -191,6 +191,7 @@ export const caseService = {
         content: input.content,
         actionRequired: input.actionRequired || null,
         actionRequiredBy: input.actionRequiredBy || null,
+        actionRequiredByDate: input.actionRequiredByDate ? new Date(input.actionRequiredByDate) : null,
       },
       include: {
         _count: {
@@ -215,11 +216,20 @@ export const caseService = {
       content?: string;
       actionRequired?: string | null;
       actionRequiredBy?: ActionParty | null;
+      actionRequiredByDate?: string | null;
     }
   ) {
+    // Convert date string to Date object if provided
+    const data = {
+      ...input,
+      actionRequiredByDate: input.actionRequiredByDate !== undefined
+        ? (input.actionRequiredByDate ? new Date(input.actionRequiredByDate) : null)
+        : undefined,
+    };
+
     return prisma.caseInteraction.update({
       where: { id: interactionId },
-      data: input,
+      data,
       include: {
         case: true,
         _count: {

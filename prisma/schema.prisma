@@ -325,9 +325,10 @@ model CaseInteraction {
   content           String       @db.Text
 
   // Action tracking
-  actionRequired    String?      @db.Text @map("action_required") // What action is needed from this interaction
-  actionRequiredBy  ActionParty? @map("action_required_by") // Who needs to take action
-  isActiveAction    Boolean      @default(false) @map("is_active_action") // If true, this interaction's action bubbles up to the Case
+  actionRequired       String?      @db.Text @map("action_required") // What action is needed from this interaction
+  actionRequiredBy     ActionParty? @map("action_required_by") // Who needs to take action
+  actionRequiredByDate DateTime?    @map("action_required_by_date") // Date by which action is required
+  isActiveAction       Boolean      @default(false) @map("is_active_action") // If true, this interaction's action bubbles up to the Case
 
   // Metadata
   createdAt         DateTime     @default(now()) @map("created_at")
@@ -444,4 +445,5 @@ enum ActionParty {
   CLIENT
   CONTRACTOR
   EMPLOYEE
+  THIRD_PARTY
 }

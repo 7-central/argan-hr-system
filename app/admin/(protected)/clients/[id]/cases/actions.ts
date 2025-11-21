@@ -285,7 +285,13 @@ export const getInteractionsByCaseId = withAuth(
       // Transform to frontend format
       const transformedInteractions = interactions.map((i) => ({
         id: i.id,
-        date: i.createdAt.toLocaleDateString('en-GB'),
+        date: i.createdAt.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         party1Name: i.party1Name,
         party1Type: i.party1Type,
         party2Name: i.party2Name,
@@ -295,6 +301,7 @@ export const getInteractionsByCaseId = withAuth(
         isActiveAction: i.isActiveAction,
         actionRequired: i.actionRequired,
         actionRequiredBy: i.actionRequiredBy,
+        actionRequiredByDate: i.actionRequiredByDate ? i.actionRequiredByDate.toISOString().split('T')[0] : null,
       }));
 
       return { success: true, data: transformedInteractions };
@@ -331,6 +338,7 @@ export const createInteraction = withAuth(
       isActiveAction: boolean;
       actionRequired: string | null;
       actionRequiredBy: string | null;
+      actionRequiredByDate: string | null;
     };
     error?: string;
   }> => {
@@ -340,7 +348,13 @@ export const createInteraction = withAuth(
       // Transform to frontend format
       const transformedInteraction = {
         id: interaction.id,
-        date: interaction.createdAt.toLocaleDateString('en-GB'),
+        date: interaction.createdAt.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         party1Name: interaction.party1Name,
         party1Type: interaction.party1Type,
         party2Name: interaction.party2Name,
@@ -350,6 +364,7 @@ export const createInteraction = withAuth(
         isActiveAction: interaction.isActiveAction,
         actionRequired: interaction.actionRequired,
         actionRequiredBy: interaction.actionRequiredBy,
+        actionRequiredByDate: interaction.actionRequiredByDate ? interaction.actionRequiredByDate.toISOString().split('T')[0] : null,
       };
 
       // Get case to find clientId for revalidation
@@ -380,12 +395,13 @@ export const updateInteraction = withAuth(
     interactionId: number,
     input: {
       party1Name?: string;
-      party1Type?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE';
+      party1Type?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY';
       party2Name?: string;
-      party2Type?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE';
+      party2Type?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY';
       content?: string;
       actionRequired?: string | null;
-      actionRequiredBy?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | null;
+      actionRequiredBy?: 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY' | null;
+      actionRequiredByDate?: string | null;
     }
   ): Promise<{
     success: boolean;
@@ -401,6 +417,7 @@ export const updateInteraction = withAuth(
       isActiveAction: boolean;
       actionRequired: string | null;
       actionRequiredBy: string | null;
+      actionRequiredByDate: string | null;
     };
     error?: string;
   }> => {
@@ -411,7 +428,13 @@ export const updateInteraction = withAuth(
       // Transform to frontend format
       const transformedInteraction = {
         id: updatedInteraction.id,
-        date: updatedInteraction.createdAt.toLocaleDateString('en-GB'),
+        date: updatedInteraction.createdAt.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         party1Name: updatedInteraction.party1Name,
         party1Type: updatedInteraction.party1Type,
         party2Name: updatedInteraction.party2Name,
@@ -421,6 +444,7 @@ export const updateInteraction = withAuth(
         isActiveAction: updatedInteraction.isActiveAction,
         actionRequired: updatedInteraction.actionRequired,
         actionRequiredBy: updatedInteraction.actionRequiredBy,
+        actionRequiredByDate: updatedInteraction.actionRequiredByDate ? updatedInteraction.actionRequiredByDate.toISOString().split('T')[0] : null,
       };
 
       // Revalidate the path using the clientId from the related case

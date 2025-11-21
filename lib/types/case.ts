@@ -35,6 +35,7 @@ export interface CreateInteractionInput {
   content: string;
   actionRequired?: string | null;
   actionRequiredBy?: ActionParty | null;
+  actionRequiredByDate?: string | null;
 }
 
 export interface CreateFileInput {
