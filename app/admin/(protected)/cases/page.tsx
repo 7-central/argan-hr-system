@@ -26,7 +26,13 @@ export default async function CallLogPage() {
     clientId: c.clientId,
     clientName: c.client.companyName,
     clientTier: c.client.serviceTier,
-    creationDate: c.createdAt.toLocaleDateString('en-GB'),
+    creationDate: c.createdAt.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
     lastInteractionDate: c.lastInteractionDate.toLocaleDateString('en-GB'),
     lastInteractionDateTime: c.lastInteractionDate,
     status: c.status,

@@ -81,7 +81,13 @@ export const getCasesByClientId = withAuth(
         id: c.id,
         caseId: c.caseId,
         title: c.title,
-        creationDate: c.createdAt.toLocaleDateString('en-GB'),
+        creationDate: c.createdAt.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         status: c.status,
         actionRequired: c.actionRequiredBy,
         escalatedBy: c.escalatedBy,
@@ -136,7 +142,13 @@ export const createCase = withAuth(
         id: newCase.id,
         caseId: newCase.caseId,
         title: newCase.title,
-        creationDate: newCase.createdAt.toLocaleDateString('en-GB'),
+        creationDate: newCase.createdAt.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         status: newCase.status,
         actionRequired: newCase.actionRequiredBy,
         escalatedBy: newCase.escalatedBy,
@@ -195,7 +207,13 @@ export const updateCase = withAuth(
         id: updatedCase.id,
         caseId: updatedCase.caseId,
         title: updatedCase.title,
-        creationDate: updatedCase.createdAt.toLocaleDateString('en-GB'),
+        creationDate: updatedCase.createdAt.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         status: updatedCase.status,
         actionRequiredBy: updatedCase.actionRequiredBy,
         actionRequired: updatedCase.actionRequired,

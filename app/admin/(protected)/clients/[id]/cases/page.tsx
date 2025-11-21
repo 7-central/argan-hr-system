@@ -55,7 +55,13 @@ export default async function ClientCasesPage({ params }: ClientCasesPageProps) 
     id: c.id,
     caseId: c.caseId,
     title: c.title,
-    creationDate: c.createdAt.toLocaleDateString('en-GB'),
+    creationDate: c.createdAt.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
     status: c.status,
     actionRequiredBy: c.actionRequiredBy,
     actionRequired: c.actionRequired,
