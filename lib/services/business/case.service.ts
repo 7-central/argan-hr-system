@@ -100,9 +100,8 @@ export const caseService = {
    * Create a new case
    */
   async createCase(input: CreateCaseInput) {
-    // Get the last case for this client to generate next case ID
+    // Get the last case globally to generate next case ID
     const lastCase = await prisma.case.findFirst({
-      where: { clientId: input.clientId },
       orderBy: { id: 'desc' },
     });
 
