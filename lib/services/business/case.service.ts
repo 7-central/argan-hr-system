@@ -101,8 +101,9 @@ export const caseService = {
    */
   async createCase(input: CreateCaseInput) {
     // Get the last case globally to generate next case ID
+    // Order by caseId string to ensure we get the highest case number
     const lastCase = await prisma.case.findFirst({
-      orderBy: { id: 'desc' },
+      orderBy: { caseId: 'desc' },
     });
 
     // Generate case ID (CASE-0001, CASE-0002, etc.)
