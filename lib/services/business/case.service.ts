@@ -33,6 +33,52 @@ export const caseService = {
   },
 
   /**
+   * Get cases with active interactions that have action required by dates
+   * Used for dashboard follow-up widget
+   */
+  async getCasesWithActionDates() {
+    // Find all active interactions with dates
+    const interactions = await prisma.caseInteraction.findMany({
+      where: {
+        isActiveAction: true,
+        actionRequiredByDate: {
+          not: null,
+        },
+      },
+      include: {
+        case: {
+          include: {
+            client: {
+              select: {
+                id: true,
+                companyName: true,
+                serviceTier: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        actionRequiredByDate: 'asc', // Earliest dates first
+      },
+    });
+
+    // Transform to case-level data with interaction details
+    return interactions.map((interaction) => ({
+      caseId: interaction.case.caseId,
+      caseNumericId: interaction.case.id,
+      caseTitle: interaction.case.title,
+      clientId: interaction.case.client.id,
+      clientName: interaction.case.client.companyName,
+      clientTier: interaction.case.client.serviceTier,
+      actionRequiredBy: interaction.actionRequiredBy,
+      actionRequired: interaction.actionRequired,
+      actionRequiredByDate: interaction.actionRequiredByDate!,
+      interactionId: interaction.id,
+    }));
+  },
+
+  /**
    * Get all cases across all clients (for call log view)
    * Returns cases with client info and last interaction date
    */

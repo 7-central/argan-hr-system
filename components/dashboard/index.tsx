@@ -8,3 +8,4 @@ export { DashboardMetrics } from './dashboard-metrics';
 export { RecentClients } from './recent-clients';
 export { MetricsSkeleton } from './metrics-skeleton';
 export { RecentClientsSkeleton } from './recent-clients-skeleton';
+export { ActionsWithDeadlinesWidget } from './actions-with-deadlines-widget';

@@ -4,11 +4,13 @@ import Link from 'next/link';
 
 import { TrendingUp, Shield, Briefcase, AlertTriangle } from 'lucide-react';
 
+import { caseService } from '@/lib/services/business/case.service';
 import { validateSession } from '@/lib/utils/system/session';
 
 import {
   DashboardMetrics,
   MetricsSkeleton,
+  ActionsWithDeadlinesWidget,
 } from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +25,10 @@ export default async function AdminDashboard() {
 
   // Extract first name from full name
   const firstName = session?.name.split(' ')[0] || 'Admin';
+
+  // Fetch actions with deadlines
+  const casesWithDates = await caseService.getCasesWithActionDates();
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       {/* Page Title */}
@@ -121,6 +127,9 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Actions with Deadlines Widget */}
+      <ActionsWithDeadlinesWidget casesWithDates={casesWithDates} />
     </div>
   );
 }
