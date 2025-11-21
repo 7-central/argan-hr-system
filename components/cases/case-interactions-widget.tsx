@@ -67,9 +67,7 @@ interface AdminUser {
 
 // Mock contractors (TODO: Replace with real data from API when contractor feature is built)
 const MOCK_CONTRACTORS = [
-  'John Smith - Legal Consultant',
-  'Jane Doe - HR Specialist',
-  'Bob Wilson - Safety Advisor',
+  'Sue Butterworth',
 ];
 
 /**

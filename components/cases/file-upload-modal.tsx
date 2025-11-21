@@ -207,7 +207,7 @@ export function FileUploadModal({
             <Label htmlFor="title">Title (optional)</Label>
             <Input
               id="title"
-              placeholder="e.g., Written Warning - John Smith"
+              placeholder="e.g., Written Warning - Sue Butterworth"
               value={fileTitle}
               onChange={(e) => setFileTitle(e.target.value)}
               disabled={isUploading}
