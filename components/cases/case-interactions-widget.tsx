@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { FileUploadModal } from '@/components/cases/file-upload-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
   const [actionRequired, setActionRequired] = useState('');
   const [actionRequiredBy, setActionRequiredBy] = useState<'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY' | ''>('');
   const [actionRequiredByDate, setActionRequiredByDate] = useState<string>('');
+  const [noDateNeeded, setNoDateNeeded] = useState(false);
 
   /**
    * Load admin users on mount
@@ -172,7 +174,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         content: newInteractionText.trim(),
         actionRequired: actionRequired.trim() || null,
         actionRequiredBy: actionRequiredBy || null,
-        actionRequiredByDate: actionRequiredByDate || null,
+        actionRequiredByDate: noDateNeeded ? null : (actionRequiredByDate || null),
       });
 
       if (result.success && result.data) {
@@ -193,6 +195,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         setActionRequired('');
         setActionRequiredBy('');
         setActionRequiredByDate('');
+        setNoDateNeeded(false);
         setIsDialogOpen(false);
       } else {
         toast.error(result.error || 'Failed to add interaction');
@@ -240,6 +243,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
     setActionRequired(interaction.actionRequired || '');
     setActionRequiredBy((interaction.actionRequiredBy as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY') || '');
     setActionRequiredByDate(interaction.actionRequiredByDate || '');
+    setNoDateNeeded(!interaction.actionRequiredByDate);
 
     // Set party 1 data
     setParty1Type(interaction.party1Type as 'ARGAN' | 'CLIENT' | 'CONTRACTOR' | 'EMPLOYEE' | 'THIRD_PARTY');
@@ -299,7 +303,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         content: newInteractionText.trim(),
         actionRequired: actionRequired.trim() || null,
         actionRequiredBy: actionRequiredBy || null,
-        actionRequiredByDate: actionRequiredByDate || null,
+        actionRequiredByDate: noDateNeeded ? null : (actionRequiredByDate || null),
       });
 
       if (result.success && result.data) {
@@ -322,6 +326,7 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
         setActionRequired('');
         setActionRequiredBy('');
         setActionRequiredByDate('');
+        setNoDateNeeded(false);
         setEditingInteraction(null);
         setIsDialogOpen(false);
       } else {
@@ -868,13 +873,31 @@ export function CaseInteractionsWidget({ caseId, caseNumericId, clientId }: Case
               {/* Action Required By Date */}
               <div className="space-y-2">
                 <Label htmlFor="action-required-by-date" className="text-sm">Action Required By Date</Label>
-                <Input
-                  id="action-required-by-date"
-                  type="date"
-                  value={actionRequiredByDate}
-                  onChange={(e) => setActionRequiredByDate(e.target.value)}
-                  className="w-full"
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="action-required-by-date"
+                    type="date"
+                    value={actionRequiredByDate}
+                    onChange={(e) => setActionRequiredByDate(e.target.value)}
+                    disabled={noDateNeeded}
+                    className="flex-1"
+                  />
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <Checkbox
+                      id="no-date-needed"
+                      checked={noDateNeeded}
+                      onCheckedChange={(checked) => {
+                        setNoDateNeeded(checked as boolean);
+                        if (checked) {
+                          setActionRequiredByDate('');
+                        }
+                      }}
+                    />
+                    <Label htmlFor="no-date-needed" className="text-sm cursor-pointer">
+                      No date
+                    </Label>
+                  </div>
+                </div>
               </div>
             </div>
 
