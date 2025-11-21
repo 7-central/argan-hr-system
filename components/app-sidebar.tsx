@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { Building2, FileText, LayoutDashboard, Settings, Users, Briefcase, FolderOpen } from 'lucide-react';
+import { Building2, FileText, LayoutDashboard, Settings, Users, Briefcase } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -30,11 +30,6 @@ const navData = {
       title: 'Clients',
       url: '/admin/clients',
       icon: Users,
-    },
-    {
-      title: 'Cases',
-      url: '/admin/cases',
-      icon: FolderOpen,
     },
     {
       title: 'Contractors',
